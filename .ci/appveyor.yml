@@ -1,0 +1,51 @@
+environment:
+    global:
+        S3_UPLOAD_USERNAME: oss-ci-bot
+        S3_UPLOAD_BUCKET: magicstack-oss-releases
+        S3_UPLOAD_ACCESSKEY:
+            secure: 1vmOqSXq5zDN8UdezZ3H4l0A9LUJiTr7Wuy9whCdffE=
+        S3_UPLOAD_SECRET:
+            secure: XudOvV6WtY9yRoqKahXMswFth8SF1UTnSXws4UBjeqzQUjOx2V2VRvIdpPfiqUKt
+
+    matrix:
+        - PYTHON: "C:\\Python35\\python.exe"
+        - PYTHON: "C:\\Python35-x64\\python.exe"
+        - PYTHON: "C:\\Python36\\python.exe"
+        - PYTHON: "C:\\Python36-x64\\python.exe"
+
+branches:
+    # Avoid building PR branches.
+    only:
+        - master
+        - ci
+        - releases
+
+install:
+    - "%PYTHON% -m pip install --upgrade pip wheel setuptools"
+    - "%PYTHON% -m pip install --upgrade -r .ci/requirements-win.txt"
+
+build_script:
+    - "%PYTHON% setup.py build_ext --inplace"
+
+test_script:
+    - "%PYTHON% setup.py test"
+
+after_test:
+    - "%PYTHON% setup.py bdist_wheel"
+
+artifacts:
+    - path: dist\*
+
+deploy_script:
+    - ps: |
+        if ($env:appveyor_repo_branch -eq 'releases') {
+            $PACKAGE_VERSION = & "$env:PYTHON" ".ci/package-version.py"
+            $PYPI_VERSION = & "$env:PYTHON" ".ci/pypi-check.py" "immutables"
+
+            if ($PACKAGE_VERSION -eq $PYPI_VERSION) {
+                Write-Error "immutables-$PACKAGE_VERSION is already published on PyPI"
+                exit 1
+            }
+
+            & "$env:PYTHON" ".ci/s3-upload.py" dist\*.whl
+        }
