@@ -1,0 +1,3 @@
+recursive-include tests *.py
+recursive-include immutables *.py *.c *.h
+include LICENSE README.rst
