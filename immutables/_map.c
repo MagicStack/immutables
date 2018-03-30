@@ -2885,7 +2885,7 @@ static PyMappingMethods Map_as_mapping = {
 
 PyTypeObject _Map_Type = {
     PyVarObject_HEAD_INIT(&PyType_Type, 0)
-    "map",
+    "Map",
     sizeof(MapObject),
     .tp_methods = Map_methods,
     .tp_as_mapping = &Map_as_mapping,
