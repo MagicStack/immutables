@@ -2,6 +2,8 @@ import platform
 import setuptools
 
 
+VERSION = '0.1'
+
 CFLAGS = ['-O2']
 
 if platform.uname().system != 'Windows':
@@ -10,6 +12,7 @@ if platform.uname().system != 'Windows':
 
 setuptools.setup(
     name='immutables',
+    version=VERSION,
     description='Immutable Collections',
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
