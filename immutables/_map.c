@@ -1860,7 +1860,7 @@ map_node_array_without(MapNode_Array *self,
                     continue;
                 }
 
-                bitmap |= 1 << i;
+                bitmap |= 1u << i;
 
                 if (IS_BITMAP_NODE(node)) {
                     MapNode_Bitmap *child = (MapNode_Bitmap *)node;
@@ -2188,8 +2188,8 @@ map_iterator_bitmap_next(MapIteratorState *iter,
     if (node->b_array[pos] == NULL) {
         iter->i_pos[level] = pos + 2;
 
-        int8_t next_level = level + 1;
-        assert(next_level < _Py_HAMT_MAX_TREE_DEPTH);
+        assert(level + 1 < _Py_HAMT_MAX_TREE_DEPTH);
+        int8_t next_level = (int8_t)(level + 1);
         iter->i_level = next_level;
         iter->i_pos[next_level] = 0;
         iter->i_nodes[next_level] = (MapNode *)
@@ -2250,8 +2250,8 @@ map_iterator_array_next(MapIteratorState *iter,
         if (node->a_array[i] != NULL) {
             iter->i_pos[level] = i + 1;
 
-            int8_t next_level = level + 1;
-            assert(next_level < _Py_HAMT_MAX_TREE_DEPTH);
+            assert((level + 1) < _Py_HAMT_MAX_TREE_DEPTH);
+            int8_t next_level = (int8_t)(level + 1);
             iter->i_pos[next_level] = 0;
             iter->i_nodes[next_level] = node->a_array[i];
             iter->i_level = next_level;
@@ -2884,7 +2884,7 @@ static PyMappingMethods Map_as_mapping = {
 };
 
 PyTypeObject _Map_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "Map",
     sizeof(MapObject),
     .tp_methods = Map_methods,
@@ -2907,7 +2907,7 @@ PyTypeObject _Map_Type = {
 
 
 PyTypeObject _Map_ArrayNode_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "map_array_node",
     sizeof(MapNode_Array),
     0,
@@ -2920,7 +2920,7 @@ PyTypeObject _Map_ArrayNode_Type = {
 };
 
 PyTypeObject _Map_BitmapNode_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "map_bitmap_node",
     sizeof(MapNode_Bitmap) - sizeof(PyObject *),
     sizeof(PyObject *),
@@ -2933,7 +2933,7 @@ PyTypeObject _Map_BitmapNode_Type = {
 };
 
 PyTypeObject _Map_CollisionNode_Type = {
-    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+    PyVarObject_HEAD_INIT(NULL, 0)
     "map_collision_node",
     sizeof(MapNode_Collision) - sizeof(PyObject *),
     sizeof(PyObject *),

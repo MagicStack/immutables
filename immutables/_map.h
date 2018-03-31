@@ -1,6 +1,7 @@
 #ifndef IMMUTABLES_MAP_H
 #define IMMUTABLES_MAP_H
 
+#include <stdint.h>
 #include "Python.h"
 
 #define _Py_HAMT_MAX_TREE_DEPTH 7
@@ -59,13 +60,13 @@ typedef struct {
 } MapIterator;
 
 
-PyAPI_DATA(PyTypeObject) _Map_Type;
-PyAPI_DATA(PyTypeObject) _Map_ArrayNode_Type;
-PyAPI_DATA(PyTypeObject) _Map_BitmapNode_Type;
-PyAPI_DATA(PyTypeObject) _Map_CollisionNode_Type;
-PyAPI_DATA(PyTypeObject) _MapKeys_Type;
-PyAPI_DATA(PyTypeObject) _MapValues_Type;
-PyAPI_DATA(PyTypeObject) _MapItems_Type;
+PyTypeObject _Map_Type;
+PyTypeObject _Map_ArrayNode_Type;
+PyTypeObject _Map_BitmapNode_Type;
+PyTypeObject _Map_CollisionNode_Type;
+PyTypeObject _MapKeys_Type;
+PyTypeObject _MapValues_Type;
+PyTypeObject _MapItems_Type;
 
 
 #endif

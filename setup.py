@@ -5,9 +5,9 @@ import setuptools
 VERSION = '0.1'
 
 CFLAGS = ['-O2']
-
 if platform.uname().system != 'Windows':
-    CFLAGS.extend(['-fsigned-char', '-Wall', '-Wsign-compare', '-Wconversion'])
+    CFLAGS.extend(['-std=c99', '-fsigned-char', '-Wall',
+                   '-Wsign-compare', '-Wconversion'])
 
 
 setuptools.setup(
