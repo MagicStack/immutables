@@ -58,12 +58,11 @@ if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
 elif [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     export PGINSTALLATION="/usr/local/opt/postgresql@${PGVERSION}/bin"
 
-    make clean && make -C "${_root}"
     pip wheel "${_root}" -w "${_root}/dist/"
 
     pip install ${PYMODULE} --no-index -f "file:///${_root}/dist"
     pushd / >/dev/null
-    make -C "${_root}" testinstalled
+    python "${_root}/tests/__init__.py"
     popd >/dev/null
 
     _upload_wheels

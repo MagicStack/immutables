@@ -8,7 +8,7 @@ PIP="/opt/python/${PYTHON_VERSION}/bin/pip"
 ${PIP} install --upgrade pip wheel
 ${PIP} install --upgrade setuptools
 ${PIP} install -r /io/.ci/requirements.txt
-make -C /io/ PYTHON="${PYTHON}"
+rm -rf /io/build
 ${PIP} wheel /io/ -w /io/dist/
 
 # Bundle external shared libraries into the wheels.
@@ -25,5 +25,5 @@ PYTHON="/opt/python/${PYTHON_VERSION}/bin/python"
 PIP="/opt/python/${PYTHON_VERSION}/bin/pip"
 ${PIP} install ${PYMODULE} --no-index -f file:///io/dist
 rm -rf /io/tests/__pycache__
-make -C /io/ PYTHON="${PYTHON}" testinstalled
+"${PYTHON}" /io/tests/__init__.py
 rm -rf /io/tests/__pycache__
