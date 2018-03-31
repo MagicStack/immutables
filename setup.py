@@ -1,13 +1,24 @@
+import os.path
 import platform
 import setuptools
 
-
-VERSION = '0.1'
 
 CFLAGS = ['-O2']
 if platform.uname().system != 'Windows':
     CFLAGS.extend(['-std=c99', '-fsigned-char', '-Wall',
                    '-Wsign-compare', '-Wconversion'])
+
+
+with open(os.path.join(
+        os.path.dirname(__file__), 'immutables', '__init__.py')) as f:
+    for line in f:
+        if line.startswith('__version__ ='):
+            _, _, version = line.partition('=')
+            VERSION = version.strip(" \n'\"")
+            break
+    else:
+        raise RuntimeError(
+            'unable to read the version from immutables/__init__.py')
 
 
 setuptools.setup(
