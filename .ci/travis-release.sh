@@ -51,5 +51,3 @@ for distfile in "${expected_wheels[@]}"; do
 done
 
 python -m twine upload dist/*.whl dist/*.tar.*
-
-.ci/travis-publish-docs.sh
