@@ -16,7 +16,7 @@ class HashKey:
         self.error_on_eq_to = error_on_eq_to
 
     def __repr__(self):
-        return f'<Key name:{self.name} hash:{self.hash}>'
+        return '<Key name:{} hash:{}>'.format(self.name, self.hash)
 
     def __hash__(self):
         if self._crasher is not None and self._crasher.error_on_hash:
@@ -32,9 +32,9 @@ class HashKey:
             raise EqError
 
         if self.error_on_eq_to is not None and self.error_on_eq_to is other:
-            raise ValueError(f'cannot compare {self!r} to {other!r}')
+            raise ValueError('cannot compare {!r} to {!r}'.format(self, other))
         if other.error_on_eq_to is not None and other.error_on_eq_to is self:
-            raise ValueError(f'cannot compare {other!r} to {self!r}')
+            raise ValueError('cannot compare {!r} to {!r}'.format(other, self))
 
         return (self.name, self.hash) == (other.name, other.hash)
 
@@ -449,7 +449,7 @@ class MapTest(unittest.TestCase):
         for i in range(17):
             key = HashKey(i, str(i))
             keys.append(key)
-            h = h.set(key, f'val-{i}')
+            h = h.set(key, 'val-{}'.format(i))
 
         collision_key16 = HashKey(16, '18')
         h = h.set(collision_key16, 'collision')
