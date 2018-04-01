@@ -2854,6 +2854,94 @@ map_py_dump(MapObject *self, PyObject *args)
 }
 
 
+static PyObject *
+map_py_repr(MapObject *self)
+{
+    Py_ssize_t i;
+    _PyUnicodeWriter writer;
+
+
+    i = Py_ReprEnter((PyObject *)self);
+    if (i != 0) {
+        return i > 0 ? PyUnicode_FromString("{...}") : NULL;
+    }
+
+    _PyUnicodeWriter_Init(&writer);
+
+    if (_PyUnicodeWriter_WriteASCIIString(
+            &writer, "<immutables.Map({", 17) < 0)
+    {
+        goto error;
+    }
+
+    MapIteratorState iter;
+    map_iter_t iter_res;
+    map_iterator_init(&iter, self->h_root);
+    int second = 0;
+    do {
+        PyObject *v_key;
+        PyObject *v_val;
+
+        iter_res = map_iterator_next(&iter, &v_key, &v_val);
+        if (iter_res == I_ITEM) {
+            if (second) {
+                if (_PyUnicodeWriter_WriteASCIIString(&writer, ", ", 2) < 0) {
+                    goto error;
+                }
+            }
+
+            PyObject *s = PyObject_Repr(v_key);
+            if (s == NULL) {
+                goto error;
+            }
+            if (_PyUnicodeWriter_WriteStr(&writer, s) < 0) {
+                Py_DECREF(s);
+                goto error;
+            }
+            Py_DECREF(s);
+
+            if (_PyUnicodeWriter_WriteASCIIString(&writer, ": ", 2) < 0) {
+                goto error;
+            }
+
+            s = PyObject_Repr(v_val);
+            if (s == NULL) {
+                goto error;
+            }
+            if (_PyUnicodeWriter_WriteStr(&writer, s) < 0) {
+                Py_DECREF(s);
+                goto error;
+            }
+            Py_DECREF(s);
+        }
+
+        second = 1;
+    } while (iter_res != I_END);
+
+    if (_PyUnicodeWriter_WriteASCIIString(&writer, "})", 2) < 0) {
+        goto error;
+    }
+
+    PyObject *addr = PyUnicode_FromFormat(" at %p>", self);
+    if (addr == NULL) {
+        goto error;
+    }
+    if (_PyUnicodeWriter_WriteStr(&writer, addr) < 0) {
+        Py_DECREF(addr);
+        goto error;
+    }
+    Py_DECREF(addr);
+
+    Py_ReprLeave((PyObject *)self);
+    return _PyUnicodeWriter_Finish(&writer);
+
+error:
+    _PyUnicodeWriter_Dealloc(&writer);
+    Py_ReprLeave((PyObject *)self);
+    return NULL;
+}
+
+
 static PyMethodDef Map_methods[] = {
     {"set", (PyCFunction)map_py_set, METH_VARARGS, NULL},
     {"get", (PyCFunction)map_py_get, METH_VARARGS, NULL},
@@ -2900,6 +2988,7 @@ PyTypeObject _Map_Type = {
     .tp_new = map_tp_new,
     .tp_weaklistoffset = offsetof(MapObject, h_weakreflist),
     .tp_hash = PyObject_HashNotImplemented,
+    .tp_repr = (reprfunc)map_py_repr,
 };
 
 

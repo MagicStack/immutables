@@ -16,6 +16,8 @@ class HashKey:
         self.error_on_eq_to = error_on_eq_to
 
     def __repr__(self):
+        if self._crasher is not None and self._crasher.error_on_repr:
+            raise ReprError
         return '<Key name:{} hash:{}>'.format(self.name, self.hash)
 
     def __hash__(self):
@@ -51,12 +53,19 @@ class KeyStr(str):
             raise EqError
         return super().__eq__(other)
 
+    def __repr__(self, other):
+        if HashKey._crasher is not None and HashKey._crasher.error_on_repr:
+            raise ReprError
+        return super().__eq__(other)
+
 
 class HaskKeyCrasher:
 
-    def __init__(self, *, error_on_hash=False, error_on_eq=False):
+    def __init__(self, *, error_on_hash=False, error_on_eq=False,
+                 error_on_repr=False):
         self.error_on_hash = error_on_hash
         self.error_on_eq = error_on_eq
+        self.error_on_repr = error_on_repr
 
     def __enter__(self):
         if HashKey._crasher is not None:
@@ -72,6 +81,10 @@ class HashingError(Exception):
 
 
 class EqError(Exception):
+    pass
+
+
+class ReprError(Exception):
     pass
 
 
@@ -704,6 +717,45 @@ class MapTest(unittest.TestCase):
         with self.assertRaises(HashingError):
             with HaskKeyCrasher(error_on_hash=True):
                 h[AA]
+
+    def test_repr_1(self):
+        h = Map()
+        self.assertTrue(repr(h).startswith('<immutables.Map({}) at 0x'))
+
+        h = h.set(1, 2).set(2, 3).set(3, 4)
+        self.assertTrue(repr(h).startswith(
+            '<immutables.Map({1: 2, 2: 3, 3: 4}) at 0x'))
+
+    def test_repr_2(self):
+        h = Map()
+        A = HashKey(100, 'A')
+
+        with self.assertRaises(ReprError):
+            with HaskKeyCrasher(error_on_repr=True):
+                repr(h.set(1, 2).set(A, 3).set(3, 4))
+
+        with self.assertRaises(ReprError):
+            with HaskKeyCrasher(error_on_repr=True):
+                repr(h.set(1, 2).set(2, A).set(3, 4))
+
+    def test_repr_3(self):
+        class Key:
+            def __init__(self):
+                self.val = None
+
+            def __hash__(self):
+                return 123
+
+            def __repr__(self):
+                return repr(self.val)
+
+        h = Map()
+        k = Key()
+        h = h.set(k, 1)
+        k.val = h
+
+        self.assertTrue(repr(h).startswith(
+            '<immutables.Map({{...}: 1}) at 0x'))
 
 
 if __name__ == "__main__":
