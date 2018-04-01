@@ -2453,6 +2453,8 @@ map_alloc(void)
         return NULL;
     }
     o->h_weakreflist = NULL;
+    o->h_hash = -1;
+    o->h_count = 0;
     PyObject_GC_Track(o);
     return o;
 }
@@ -2477,8 +2479,6 @@ map_new(void)
         Py_DECREF(o);
         return NULL;
     }
-
-    o->h_count = 0;
 
     if (_empty_map == NULL) {
         Py_INCREF(o);
@@ -2942,6 +2942,65 @@ error:
 }
 
 
+static Py_uhash_t
+_shuffle_bits(Py_uhash_t h)
+{
+    return ((h ^ 89869747UL) ^ (h << 16)) * 3644798167UL;
+}
+
+
+static Py_hash_t
+map_py_hash(MapObject *self)
+{
+    /* Adapted version of frozenset.__hash__: it's important
+       that Map.__hash__ is independant of key/values order.
+
+       Optimization idea: compute and memoize intermediate
+       hash values for HAMT nodes.
+    */
+
+    if (self->h_hash != -1) {
+        return self->h_hash;
+    }
+
+    Py_uhash_t hash = 0;
+
+    MapIteratorState iter;
+    map_iter_t iter_res;
+    map_iterator_init(&iter, self->h_root);
+    do {
+        PyObject *v_key;
+        PyObject *v_val;
+
+        iter_res = map_iterator_next(&iter, &v_key, &v_val);
+        if (iter_res == I_ITEM) {
+            Py_hash_t vh = PyObject_Hash(v_key);
+            if (vh == -1) {
+                return -1;
+            }
+            hash ^= _shuffle_bits((Py_uhash_t)vh);
+
+            vh = PyObject_Hash(v_val);
+            if (vh == -1) {
+                return -1;
+            }
+            hash ^= _shuffle_bits((Py_uhash_t)vh);
+        }
+    } while (iter_res != I_END);
+
+    hash ^= ((Py_uhash_t)self->h_count * 2 + 1) * 1927868237UL;
+
+    hash ^= (hash >> 11) ^ (hash >> 25);
+    hash = hash * 69069U + 907133923UL;
+
+    self->h_hash = (Py_hash_t)hash;
+    if (self->h_hash == -1) {
+        self->h_hash = 1;
+    }
+    return self->h_hash;
+}
+
+
 static PyMethodDef Map_methods[] = {
     {"set", (PyCFunction)map_py_set, METH_VARARGS, NULL},
     {"get", (PyCFunction)map_py_get, METH_VARARGS, NULL},
@@ -2987,7 +3046,7 @@ PyTypeObject _Map_Type = {
     .tp_clear = (inquiry)map_tp_clear,
     .tp_new = map_tp_new,
     .tp_weaklistoffset = offsetof(MapObject, h_weakreflist),
-    .tp_hash = PyObject_HashNotImplemented,
+    .tp_hash = (hashfunc)map_py_hash,
     .tp_repr = (reprfunc)map_py_repr,
 };
 

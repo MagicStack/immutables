@@ -757,6 +757,33 @@ class MapTest(unittest.TestCase):
         self.assertTrue(repr(h).startswith(
             '<immutables.Map({{...}: 1}) at 0x'))
 
+    def test_hash_1(self):
+        h = Map()
+        self.assertNotEqual(hash(h), -1)
+        self.assertEqual(hash(h), hash(h))
+
+        h = h.set(1, 2).set('a', 'b')
+        self.assertNotEqual(hash(h), -1)
+        self.assertEqual(hash(h), hash(h))
+
+        self.assertEqual(
+            hash(h.set(1, 2).set('a', 'b')),
+            hash(h.set('a', 'b').set(1, 2)))
+
+    def test_hash_2(self):
+        h = Map()
+        A = HashKey(100, 'A')
+
+        m = h.set(1, 2).set(A, 3).set(3, 4)
+        with self.assertRaises(HashingError):
+            with HaskKeyCrasher(error_on_hash=True):
+                hash(m)
+
+        m = h.set(1, 2).set(2, A).set(3, 4)
+        with self.assertRaises(HashingError):
+            with HaskKeyCrasher(error_on_hash=True):
+                hash(m)
+
 
 if __name__ == "__main__":
     unittest.main()

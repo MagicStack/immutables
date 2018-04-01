@@ -22,6 +22,7 @@ typedef struct {
     MapNode *h_root;
     PyObject *h_weakreflist;
     Py_ssize_t h_count;
+    Py_hash_t h_hash;
 } MapObject;
 
 
