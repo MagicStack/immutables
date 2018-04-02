@@ -21,7 +21,7 @@ essentially O(1) for relatively small mappings.
 Below is a visualization of a simple get/set benchmark comparing
 HAMT to an immutable mapping implemented with a Python dict
 copy-on-write approach (the benchmark code is available
-`here <https://gist.github.com/1st1/9004813d5576c96529527d44c5457dcd>`_):
+`here <https://gist.github.com/1st1/292e3f0bbe43bd65ff3256f80aa2637d>`_):
 
 .. image:: bench.png
 
@@ -40,7 +40,7 @@ immutables.Map
 The ``Map`` object implements ``collections.abc.Mapping`` ABC
 so working with it is very similar to working with Python dicts.
 
-The only exception is its ``Map.set()`` and ``Map.delete()`` methods
+The only exception are its ``Map.set()`` and ``Map.delete()`` methods
 which return a new instance of ``Map``:
 
 .. code-block:: python
