@@ -14,9 +14,9 @@ used in Clojure, Scala, Haskell, and other functional languages.
 This implementation is used in CPython 3.7 in the ``contextvars``
 module (see PEP 550 and PEP 567 for more details).
 
-Immutable mappings based on HAMT have O(log\ :sub:`32`\ N)
-performance for both ``set()`` and ``get()`` operations, which is
-essentially O(1) for relatively small mappings.
+Immutable mappings based on HAMT have O(log N) performance for both
+``set()`` and ``get()`` operations, which is essentially O(1) for
+relatively small mappings.
 
 Below is a visualization of a simple get/set benchmark comparing
 HAMT to an immutable mapping implemented with a Python dict
