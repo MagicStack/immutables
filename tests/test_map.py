@@ -269,9 +269,10 @@ class BaseMapTest:
             self.assertEqual(len(dm), len(hm))
 
             for i, key in enumerate(keys_to_delete):
-                hm = hm.delete(str(key))
+                if str(key) in dm:
+                    hm = hm.delete(str(key))
+                    dm.pop(str(key))
                 self.assertEqual(hm.get(str(key), 'not found'), 'not found')
-                dm.pop(str(key), None)
                 self.assertEqual(len(d), len(h))
 
                 if not (i % TEST_ITERS_EVERY):
@@ -317,8 +318,9 @@ class BaseMapTest:
         h = h.delete(D)
         self.assertEqual(len(h), orig_len - 2)
 
-        h2 = h.delete(Z)
-        self.assertIs(h2, h)
+        with self.assertRaises(KeyError) as ex:
+            h.delete(Z)
+        self.assertIs(ex.exception.args[0], Z)
 
         h = h.delete(A)
         self.assertEqual(len(h), orig_len - 3)
@@ -358,7 +360,9 @@ class BaseMapTest:
         with self.assertRaisesRegex(ValueError, 'cannot compare'):
             h.delete(Er)
 
-        h = h.delete(Z)
+        with self.assertRaises(KeyError) as ex:
+            h.delete(Z)
+        self.assertIs(ex.exception.args[0], Z)
         self.assertEqual(len(h), orig_len)
 
         h = h.delete(C)
@@ -373,8 +377,10 @@ class BaseMapTest:
         self.assertEqual(h.get(D), 'd')
         self.assertEqual(h.get(E), 'e')
 
-        h = h.delete(A)
-        h = h.delete(B)
+        with self.assertRaises(KeyError):
+            h = h.delete(A)
+        with self.assertRaises(KeyError):
+            h = h.delete(B)
         h = h.delete(D)
         h = h.delete(E)
         self.assertEqual(len(h), 0)
@@ -499,11 +505,14 @@ class BaseMapTest:
 
         h = h.delete(keys[1])
         self.assertEqual(len(h), 14)
-        h = h.delete(keys[1])
+        with self.assertRaises(KeyError) as ex:
+            h.delete(keys[1])
+        self.assertIs(ex.exception.args[0], keys[1])
         self.assertEqual(len(h), 14)
 
         for key in keys:
-            h = h.delete(key)
+            if key in h:
+                h = h.delete(key)
         self.assertEqual(len(h), 0)
 
     def test_map_items_1(self):

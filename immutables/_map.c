@@ -2355,8 +2355,8 @@ map_without(MapObject *o, PyObject *key)
         case W_EMPTY:
             return map_new();
         case W_NOT_FOUND:
-            Py_INCREF(o);
-            return o;
+            PyErr_SetObject(PyExc_KeyError, key);
+            return NULL;
         case W_NEWNODE: {
             assert(new_root != NULL);
 

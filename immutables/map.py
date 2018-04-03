@@ -126,7 +126,7 @@ class BitmapNode:
         if key == key_or_null:
             return val_or_node
 
-        raise KeyError
+        raise KeyError(key)
 
     def without(self, shift, hash, key):
         bit = map_bitpos(hash, shift)
@@ -240,7 +240,7 @@ class CollisionNode:
         for i in range(0, self.size, 2):
             if self.array[i] == key:
                 return self.array[i + 1]
-        raise KeyError
+        raise KeyError(key)
 
     def assoc(self, shift, hash, key, val, added_leaf):
         if hash == self.hash:
@@ -388,8 +388,7 @@ class Map:
         if res is W_EMPTY:
             return Map()
         elif res is W_NOT_FOUND:
-            # raise KeyError(key)
-            return self
+            raise KeyError(key)
         else:
             m = Map.__new__(Map)
             m.__count = self.__count - 1
