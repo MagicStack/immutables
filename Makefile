@@ -1,4 +1,4 @@
-.PHONY: rtest build test
+.PHONY: rtest build test clean
 
 
 build:
@@ -12,3 +12,10 @@ rtest:
 
 	env PYTHONPATH=. \
 		~/dev/venvs/36-debug/bin/python -m test.regrtest -R3:3 --testdir tests/
+
+clean:
+	find . -name '*.pyc' | xargs rm
+	find . -name '*.so' | xargs rm
+	rm -rf ./build
+	rm -rf ./dist
+	rm -rf ./*.egg-info
