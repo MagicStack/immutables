@@ -1,3 +1,4 @@
+import collections.abc
 import gc
 import random
 import unittest
@@ -794,6 +795,9 @@ class BaseMapTest:
         with self.assertRaises(HashingError):
             with HaskKeyCrasher(error_on_hash=True):
                 hash(m)
+
+    def test_abc_1(self):
+        self.assertTrue(issubclass(self.Map, collections.abc.Mapping))
 
 
 class PyMapTest(BaseMapTest, unittest.TestCase):

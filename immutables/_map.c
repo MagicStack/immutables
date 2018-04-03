@@ -3032,7 +3032,7 @@ static PyMappingMethods Map_as_mapping = {
 
 PyTypeObject _Map_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "Map",
+    "immutables._map.Map",
     sizeof(MapObject),
     .tp_methods = Map_methods,
     .tp_as_mapping = &Map_as_mapping,

@@ -1,3 +1,4 @@
+import collections.abc
 import reprlib
 
 
@@ -457,3 +458,6 @@ class Map:
         buf = []
         self.__root.dump(buf, 0)
         return '\n'.join(buf)
+
+
+collections.abc.Mapping.register(Map)
