@@ -1,5 +1,6 @@
 import collections.abc
 import reprlib
+import sys
 
 
 def map_hash(o):
@@ -26,11 +27,6 @@ def map_bitcount(v):
 
 def map_bitindex(bitmap, bit):
     return map_bitcount(bitmap & (bit - 1))
-
-
-def shuffle_bits(h):
-    # used in Map.__hash__
-    return ((h ^ 89869747) ^ (h << 16)) * 3644798167
 
 
 W_EMPTY, W_NEWNODE, W_NOT_FOUND = range(3)
@@ -430,18 +426,28 @@ class Map:
         if self.__hash != -1:
             return self.__hash
 
-        h = 0
+        MAX = sys.maxsize
+        MASK = 2 * MAX + 1
+
+        h = 1927868237 * (self.__count * 2 + 1)
+        h &= MASK
+
         for key, value in self.__root.items():
-            h ^= shuffle_bits(hash(key))
-            h ^= shuffle_bits(hash(value))
+            hx = hash(key)
+            h ^= (hx ^ (hx << 16) ^ 89869747) * 3644798167
+            h &= MASK
 
-        h ^= (self.__count * 2 + 1) * 1927868237
+            hx = hash(value)
+            h ^= (hx ^ (hx << 16) ^ 89869747) * 3644798167
+            h &= MASK
 
-        h ^= (h >> 11) ^ (h >> 25)
         h = h * 69069 + 907133923
+        h &= MASK
 
+        if h > MAX:
+            h -= MASK + 1
         if h == -1:
-            h = -2
+            h = 590923713
 
         self.__hash = h
         return h
