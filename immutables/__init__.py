@@ -8,4 +8,4 @@ else:
 
 
 __all__ = 'Map',
-__version__ = '0.3'
+__version__ = '0.4'
