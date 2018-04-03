@@ -21,6 +21,17 @@ with open(os.path.join(
             'unable to read the version from immutables/__init__.py')
 
 
+if platform.python_implementation() == 'CPython':
+    ext_modules = [
+        setuptools.Extension(
+            "immutables._map",
+            ["immutables/_map.c"],
+            extra_compile_args=CFLAGS)
+    ]
+else:
+    ext_modules = []
+
+
 setuptools.setup(
     name='immutables',
     version=VERSION,
@@ -42,11 +53,6 @@ setuptools.setup(
     packages=['immutables'],
     provides=['immutables'],
     include_package_data=True,
-    ext_modules=[
-        setuptools.Extension(
-            "immutables._map",
-            ["immutables/_map.c"],
-            extra_compile_args=CFLAGS)
-    ],
+    ext_modules=ext_modules,
     test_suite='tests.suite',
 )

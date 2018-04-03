@@ -3,7 +3,7 @@ import random
 import unittest
 import weakref
 
-from immutables import Map
+from immutables.map import Map as PyMap
 
 
 class HashKey:
@@ -88,7 +88,9 @@ class ReprError(Exception):
     pass
 
 
-class MapTest(unittest.TestCase):
+class BaseMapTest:
+
+    Map = None
 
     def test_hashkey_helper_1(self):
         k1 = HashKey(10, 'aaa')
@@ -105,11 +107,11 @@ class MapTest(unittest.TestCase):
         self.assertEqual(d[k2], 'b')
 
     def test_map_basics_1(self):
-        h = Map()
+        h = self.Map()
         h = None  # NoQA
 
     def test_map_basics_2(self):
-        h = Map()
+        h = self.Map()
         self.assertEqual(len(h), 0)
 
         h2 = h.set('a', 'b')
@@ -139,14 +141,14 @@ class MapTest(unittest.TestCase):
         h = h2 = h3 = None
 
     def test_map_basics_3(self):
-        h = Map()
+        h = self.Map()
         o = object()
         h1 = h.set('1', o)
         h2 = h1.set('1', o)
         self.assertIs(h1, h2)
 
     def test_map_basics_4(self):
-        h = Map()
+        h = self.Map()
         h1 = h.set('key', [])
         h2 = h1.set('key', [])
         self.assertIsNot(h1, h2)
@@ -159,7 +161,7 @@ class MapTest(unittest.TestCase):
         k2 = HashKey(10, 'bbb')
         k3 = HashKey(10, 'ccc')
 
-        h = Map()
+        h = self.Map()
         h2 = h.set(k1, 'a')
         h3 = h2.set(k2, 'b')
 
@@ -199,7 +201,7 @@ class MapTest(unittest.TestCase):
         RUN_XTIMES = 3
 
         for _ in range(RUN_XTIMES):
-            h = Map()
+            h = self.Map()
             d = dict()
 
             for i in range(COLLECTION_SIZE):
@@ -290,7 +292,7 @@ class MapTest(unittest.TestCase):
 
         Er = HashKey(103, 'Er', error_on_eq_to=D)
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 'a')
         h = h.set(B, 'b')
         h = h.set(C, 'c')
@@ -335,7 +337,7 @@ class MapTest(unittest.TestCase):
 
         Er = HashKey(201001, 'Er', error_on_eq_to=B)
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 'a')
         h = h.set(B, 'b')
         h = h.set(C, 'c')
@@ -384,7 +386,7 @@ class MapTest(unittest.TestCase):
         D = HashKey(100100, 'D')
         E = HashKey(104, 'E')
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 'a')
         h = h.set(B, 'b')
         h = h.set(C, 'c')
@@ -420,7 +422,7 @@ class MapTest(unittest.TestCase):
         D = HashKey(100100, 'D')
         E = HashKey(100100, 'E')
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 'a')
         h = h.set(B, 'b')
         h = h.set(C, 'c')
@@ -456,7 +458,7 @@ class MapTest(unittest.TestCase):
         self.assertEqual(len(h), 0)
 
     def test_map_delete_5(self):
-        h = Map()
+        h = self.Map()
 
         keys = []
         for i in range(17):
@@ -512,7 +514,7 @@ class MapTest(unittest.TestCase):
         E = HashKey(104, 'E')
         F = HashKey(110, 'F')
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 'a')
         h = h.set(B, 'b')
         h = h.set(C, 'c')
@@ -533,7 +535,7 @@ class MapTest(unittest.TestCase):
         E = HashKey(100100, 'E')
         F = HashKey(110, 'F')
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 'a')
         h = h.set(B, 'b')
         h = h.set(C, 'c')
@@ -554,7 +556,7 @@ class MapTest(unittest.TestCase):
         E = HashKey(100100, 'E')
         F = HashKey(110, 'F')
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 'a')
         h = h.set(B, 'b')
         h = h.set(C, 'c')
@@ -566,7 +568,7 @@ class MapTest(unittest.TestCase):
         self.assertEqual(set(list(h)), {A, B, C, D, E, F})
 
     def test_map_items_3(self):
-        h = Map()
+        h = self.Map()
         self.assertEqual(len(h.items()), 0)
         self.assertEqual(list(h.items()), [])
 
@@ -577,13 +579,13 @@ class MapTest(unittest.TestCase):
         D = HashKey(100100, 'D')
         E = HashKey(120, 'E')
 
-        h1 = Map()
+        h1 = self.Map()
         h1 = h1.set(A, 'a')
         h1 = h1.set(B, 'b')
         h1 = h1.set(C, 'c')
         h1 = h1.set(D, 'd')
 
-        h2 = Map()
+        h2 = self.Map()
         h2 = h2.set(A, 'a')
 
         self.assertFalse(h1 == h2)
@@ -621,10 +623,10 @@ class MapTest(unittest.TestCase):
         A = HashKey(100, 'A')
         Er = HashKey(100, 'Er', error_on_eq_to=A)
 
-        h1 = Map()
+        h1 = self.Map()
         h1 = h1.set(A, 'a')
 
-        h2 = Map()
+        h2 = self.Map()
         h2 = h2.set(Er, 'a')
 
         with self.assertRaisesRegex(ValueError, 'cannot compare'):
@@ -636,7 +638,7 @@ class MapTest(unittest.TestCase):
     def test_map_gc_1(self):
         A = HashKey(100, 'A')
 
-        h = Map()
+        h = self.Map()
         h = h.set(0, 0)  # empty Map node is memoized in _map.c
         ref = weakref.ref(h)
 
@@ -659,7 +661,7 @@ class MapTest(unittest.TestCase):
     def test_map_gc_2(self):
         A = HashKey(100, 'A')
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 'a')
         h = h.set(A, h)
 
@@ -681,7 +683,7 @@ class MapTest(unittest.TestCase):
 
         B = HashKey(101, 'B')
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 1)
 
         self.assertTrue(A in h)
@@ -701,7 +703,7 @@ class MapTest(unittest.TestCase):
 
         B = HashKey(101, 'B')
 
-        h = Map()
+        h = self.Map()
         h = h.set(A, 1)
 
         self.assertEqual(h[A], 1)
@@ -719,7 +721,7 @@ class MapTest(unittest.TestCase):
                 h[AA]
 
     def test_repr_1(self):
-        h = Map()
+        h = self.Map()
         self.assertTrue(repr(h).startswith('<immutables.Map({}) at 0x'))
 
         h = h.set(1, 2).set(2, 3).set(3, 4)
@@ -727,7 +729,7 @@ class MapTest(unittest.TestCase):
             '<immutables.Map({1: 2, 2: 3, 3: 4}) at 0x'))
 
     def test_repr_2(self):
-        h = Map()
+        h = self.Map()
         A = HashKey(100, 'A')
 
         with self.assertRaises(ReprError):
@@ -749,7 +751,7 @@ class MapTest(unittest.TestCase):
             def __repr__(self):
                 return repr(self.val)
 
-        h = Map()
+        h = self.Map()
         k = Key()
         h = h.set(k, 1)
         k.val = h
@@ -758,7 +760,7 @@ class MapTest(unittest.TestCase):
             '<immutables.Map({{...}: 1}) at 0x'))
 
     def test_hash_1(self):
-        h = Map()
+        h = self.Map()
         self.assertNotEqual(hash(h), -1)
         self.assertEqual(hash(h), hash(h))
 
@@ -771,7 +773,7 @@ class MapTest(unittest.TestCase):
             hash(h.set('a', 'b').set(1, 2)))
 
     def test_hash_2(self):
-        h = Map()
+        h = self.Map()
         A = HashKey(100, 'A')
 
         m = h.set(1, 2).set(A, 3).set(3, 4)
@@ -783,6 +785,23 @@ class MapTest(unittest.TestCase):
         with self.assertRaises(HashingError):
             with HaskKeyCrasher(error_on_hash=True):
                 hash(m)
+
+
+class PyMapTest(BaseMapTest, unittest.TestCase):
+
+    Map = PyMap
+
+
+try:
+    from immutables._map import Map as CMap
+except ImportError:
+    CMap = None
+
+
+@unittest.skipIf(CMap is None, 'C Map is not available')
+class CMapTest(BaseMapTest, unittest.TestCase):
+
+    Map = CMap
 
 
 if __name__ == "__main__":
