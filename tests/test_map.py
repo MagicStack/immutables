@@ -194,6 +194,50 @@ class BaseMapTest:
         self.assertEqual(len(h4), 2)
         self.assertEqual(len(h5), 3)
 
+    def test_map_collision_2(self):
+        A = HashKey(100, 'A')
+        B = HashKey(101, 'B')
+        C = HashKey(0b011000011100000100, 'C')
+        D = HashKey(0b011000011100000100, 'D')
+        E = HashKey(0b1011000011100000100, 'E')
+
+        h = self.Map()
+        h = h.set(A, 'a')
+        h = h.set(B, 'b')
+        h = h.set(C, 'c')
+        h = h.set(D, 'd')
+
+        # BitmapNode(size=6 bitmap=0b100110000):
+        #     NULL:
+        #         BitmapNode(size=4 bitmap=0b1000000000000000000001000):
+        #             <Key name:A hash:100>: 'a'
+        #             NULL:
+        #                 CollisionNode(size=4 id=0x108572410):
+        #                     <Key name:C hash:100100>: 'c'
+        #                     <Key name:D hash:100100>: 'd'
+        #     <Key name:B hash:101>: 'b'
+
+        h = h.set(E, 'e')
+
+        # BitmapNode(size=4 count=2.0 bitmap=0b110000 id=10b8ea5c0):
+        #     None:
+        #         BitmapNode(size=4 count=2.0
+        #                    bitmap=0b1000000000000000000001000 id=10b8ea518):
+        #             <Key name:A hash:100>: 'a'
+        #             None:
+        #                 BitmapNode(size=2 count=1.0 bitmap=0b10
+        #                            id=10b8ea4a8):
+        #                     None:
+        #                         BitmapNode(size=4 count=2.0
+        #                                    bitmap=0b100000001000
+        #                                    id=10b8ea4e0):
+        #                             None:
+        #                                 CollisionNode(size=4 id=10b8ea470):
+        #                                     <Key name:C hash:100100>: 'c'
+        #                                     <Key name:D hash:100100>: 'd'
+        #                             <Key name:E hash:362244>: 'e'
+        #     <Key name:B hash:101>: 'b'
+
     def test_map_stress(self):
         COLLECTION_SIZE = 7000
         TEST_ITERS_EVERY = 647
@@ -296,6 +340,7 @@ class BaseMapTest:
 
         h = self.Map()
         h = h.set(A, 'a')
+        h = h.set(A, 'a')
         h = h.set(B, 'b')
         h = h.set(C, 'c')
         h = h.set(D, 'd')
@@ -334,6 +379,7 @@ class BaseMapTest:
         A = HashKey(100, 'A')
         B = HashKey(201001, 'B')
         C = HashKey(101001, 'C')
+        BLike = HashKey(201001, 'B-like')
         D = HashKey(103, 'D')
         E = HashKey(104, 'E')
         Z = HashKey(-100, 'Z')
@@ -346,6 +392,11 @@ class BaseMapTest:
         h = h.set(C, 'c')
         h = h.set(D, 'd')
         h = h.set(E, 'e')
+
+        h = h.set(B, 'b')  # trigger branch in BitmapNode.assoc
+
+        with self.assertRaises(KeyError):
+            h.delete(BLike)    # trigger branch in BitmapNode.without
 
         orig_len = len(h)
 
@@ -387,11 +438,15 @@ class BaseMapTest:
         self.assertEqual(len(h), 0)
 
     def test_map_delete_3(self):
-        A = HashKey(100, 'A')
-        B = HashKey(101, 'B')
-        C = HashKey(100100, 'C')
-        D = HashKey(100100, 'D')
-        E = HashKey(104, 'E')
+        A = HashKey(0b00000000001100100, 'A')
+        B = HashKey(0b00000000001100101, 'B')
+
+        C = HashKey(0b11000011100000100, 'C')
+        D = HashKey(0b11000011100000100, 'D')
+        X = HashKey(0b01000011100000100, 'Z')
+        Y = HashKey(0b11000011100000100, 'Y')
+
+        E = HashKey(0b00000000001101000, 'E')
 
         h = self.Map()
         h = h.set(A, 'a')
@@ -400,7 +455,14 @@ class BaseMapTest:
         h = h.set(D, 'd')
         h = h.set(E, 'e')
 
+        h = h.set(C, 'c')  # trigger branch in CollisionNode.assoc
+
         orig_len = len(h)
+
+        with self.assertRaises(KeyError):
+            h.delete(X)
+        with self.assertRaises(KeyError):
+            h.delete(Y)
 
         # BitmapNode(size=6 bitmap=0b100110000):
         #     NULL:
@@ -421,6 +483,14 @@ class BaseMapTest:
 
         self.assertEqual(h.get(C), 'c')
         self.assertEqual(h.get(B), 'b')
+
+        h2 = h.delete(C)
+        self.assertEqual(len(h2), orig_len - 3)
+
+        h2 = h.delete(D)
+        self.assertEqual(len(h2), orig_len - 3)
+
+        self.assertEqual(len(h), orig_len - 2)
 
     def test_map_delete_4(self):
         A = HashKey(100, 'A')
@@ -516,6 +586,13 @@ class BaseMapTest:
                 h = h.delete(key)
         self.assertEqual(len(h), 0)
 
+    def test_map_delete_6(self):
+        h = self.Map()
+        h = h.set(1, 1)
+        h = h.delete(1)
+        self.assertEqual(len(h), 0)
+        self.assertEqual(h, self.Map())
+
     def test_map_items_1(self):
         A = HashKey(100, 'A')
         B = HashKey(201001, 'B')
@@ -576,6 +653,24 @@ class BaseMapTest:
 
         self.assertEqual(set(list(h.keys())), {A, B, C, D, E, F})
         self.assertEqual(set(list(h)), {A, B, C, D, E, F})
+
+    def test_map_values_1(self):
+        A = HashKey(100, 'A')
+        B = HashKey(101, 'B')
+        C = HashKey(100100, 'C')
+        D = HashKey(100100, 'D')
+        E = HashKey(100100, 'E')
+        F = HashKey(110, 'F')
+
+        h = self.Map()
+        h = h.set(A, 'a')
+        h = h.set(B, 'b')
+        h = h.set(C, 'c')
+        h = h.set(D, 'd')
+        h = h.set(E, 'e')
+        h = h.set(F, 'f')
+
+        self.assertEqual(set(list(h.values())), {'a', 'b', 'c', 'd', 'e', 'f'})
 
     def test_map_items_3(self):
         h = self.Map()
@@ -644,6 +739,9 @@ class BaseMapTest:
 
         with self.assertRaisesRegex(ValueError, 'cannot compare'):
             h1 != h2
+
+    def test_map_eq_3(self):
+        self.assertNotEqual(self.Map(), 1)
 
     def test_map_gc_1(self):
         A = HashKey(100, 'A')

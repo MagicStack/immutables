@@ -17,3 +17,5 @@ __pycache__/
 /dist
 /.cache
 /.pytest_cache
+/.coverage
+

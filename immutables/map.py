@@ -3,6 +3,15 @@ import reprlib
 import sys
 
 
+__all__ = ('Map',)
+
+
+# Python version of _map.c.  The topmost comment there explains
+# all datastructures and algorithms.
+# The code here follows C code closely on purpose to make
+# debugging and testing easier.
+
+
 def map_hash(o):
     x = hash(o)
     return (x & 0xffffffff) ^ ((x >> 32) & 0xffffffff)
@@ -141,7 +150,7 @@ class BitmapNode:
             res, sub_node = val_or_node.without(shift + 5, hash, key)
 
             if res is W_EMPTY:
-                raise RuntimeError('unreachable code')
+                raise RuntimeError('unreachable code')  # pragma: no cover
 
             elif res is W_NEWNODE:
                 if (type(sub_node) is BitmapNode and
@@ -162,6 +171,9 @@ class BitmapNode:
 
         else:
             if key == key_or_null:
+                if self.size == 2:
+                    return W_EMPTY, None
+
                 new_array = self.array[:key_idx]
                 new_array.extend(self.array[val_idx + 1:])
                 new_node = BitmapNode(
@@ -201,7 +213,7 @@ class BitmapNode:
             else:
                 yield key_or_null, val_or_node
 
-    def dump(self, buf, level):
+    def dump(self, buf, level):  # pragma: no cover
         buf.append(
             '    ' * (level + 1) +
             'BitmapNode(size={} count={} bitmap={} id={:0x}):'.format(
@@ -274,7 +286,8 @@ class CollisionNode:
 
         new_size = self.size - 2
         if new_size == 0:
-            return W_EMPTY, None
+            # Shouldn't be ever reachable
+            return W_EMPTY, None  # pragma: no cover
 
         if new_size == 2:
             if key_idx == 0:
@@ -303,7 +316,7 @@ class CollisionNode:
         for i in range(0, self.size, 2):
             yield self.array[i], self.array[i + 1]
 
-    def dump(self, buf, level):
+    def dump(self, buf, level):  # pragma: no cover
         pad = '    ' * (level + 1)
         buf.append(
             pad + 'CollisionNode(size={} id={:0x}):'.format(
@@ -445,9 +458,9 @@ class Map:
         h &= MASK
 
         if h > MAX:
-            h -= MASK + 1
+            h -= MASK + 1  # pragma: no cover
         if h == -1:
-            h = 590923713
+            h = 590923713  # pragma: no cover
 
         self.__hash = h
         return h
@@ -460,7 +473,7 @@ class Map:
         return '<immutables.Map({{{}}}) at 0x{:0x}>'.format(
             ', '.join(items), id(self))
 
-    def __dump__(self):
+    def __dump__(self):  # pragma: no cover
         buf = []
         self.__root.dump(buf, 0)
         return '\n'.join(buf)
