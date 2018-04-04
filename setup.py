@@ -32,10 +32,15 @@ else:
     ext_modules = []
 
 
+with open(os.path.join(os.path.dirname(__file__), 'README.rst')) as f:
+    readme = f.read()
+
+
 setuptools.setup(
     name='immutables',
     version=VERSION,
     description='Immutable Collections',
+    long_description=readme,
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
         'Intended Audience :: Developers',
@@ -45,7 +50,6 @@ setuptools.setup(
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Microsoft :: Windows',
     ],
-    platforms=['POSIX'],
     author='MagicStack Inc',
     author_email='hello@magic.io',
     url='https://github.com/MagicStack/immutables',
