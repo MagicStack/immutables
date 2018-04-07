@@ -455,7 +455,9 @@ class BaseMapTest:
         h = h.set(D, 'd')
         h = h.set(E, 'e')
 
+        self.assertEqual(len(h), 5)
         h = h.set(C, 'c')  # trigger branch in CollisionNode.assoc
+        self.assertEqual(len(h), 5)
 
         orig_len = len(h)
 
