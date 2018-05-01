@@ -2679,6 +2679,14 @@ map_dump(MapObject *self);
 static PyObject *
 map_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
+    if (kwds != NULL && PyDict_Size(kwds) != 0) {
+        PyErr_SetString(PyExc_TypeError, "__new__ takes no keyword arguments");
+        return NULL;
+    }
+    if (args != NULL && PyTuple_Size(args) != 0) {
+        PyErr_SetString(PyExc_TypeError, "__new__ takes no positional arguments");
+        return NULL;
+    }
     return (PyObject*)map_new();
 }
 

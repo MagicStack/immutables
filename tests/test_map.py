@@ -93,6 +93,13 @@ class BaseMapTest:
 
     Map = None
 
+    def test_init_no_args(self):
+        with self.assertRaisesRegex(TypeError, 'positional argument'):
+            self.Map(dict(a=1))
+
+        with self.assertRaisesRegex(TypeError, 'keyword argument'):
+            self.Map(a=1)
+
     def test_hashkey_helper_1(self):
         k1 = HashKey(10, 'aaa')
         k2 = HashKey(10, 'bbb')
