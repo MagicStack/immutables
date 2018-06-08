@@ -7,6 +7,9 @@ immutables
 .. image:: https://ci.appveyor.com/api/projects/status/tgbc6tq56u63qqhf?svg=true
     :target: https://ci.appveyor.com/project/MagicStack/immutables
 
+.. image:: https://img.shields.io/pypi/v/immutables.svg
+    :target: https://pypi.python.org/pypi/immutables
+
 An immutable mapping type for Python.
 
 The underlying datastructure is a Hash Array Mapped Trie (HAMT)
