@@ -2455,6 +2455,7 @@ map_alloc(void)
     o->h_weakreflist = NULL;
     o->h_hash = -1;
     o->h_count = 0;
+    o->h_root = NULL;
     PyObject_GC_Track(o);
     return o;
 }
