@@ -906,6 +906,133 @@ class BaseMapTest:
     def test_abc_1(self):
         self.assertTrue(issubclass(self.Map, collections.abc.Mapping))
 
+    def test_map_mut_1(self):
+        h = self.Map()
+        h = h.set('a', 1)
+
+        hm1 = h.mutate()
+        hm2 = h.mutate()
+
+        self.assertFalse(isinstance(hm1, self.Map))
+
+        self.assertIsNot(hm1, hm2)
+        self.assertEqual(hm1['a'], 1)
+        self.assertEqual(hm2['a'], 1)
+
+        hm1.set('b', 2)
+        hm1.set('c', 3)
+
+        hm2.set('x', 100)
+        hm2.set('a', 1000)
+
+        self.assertEqual(hm1['a'], 1)
+        self.assertEqual(hm1.get('x', -1), -1)
+
+        self.assertEqual(hm2['a'], 1000)
+        self.assertTrue('x' in hm2)
+
+        h1 = hm1.finalize()
+        h2 = hm2.finalize()
+
+        self.assertTrue(isinstance(h1, self.Map))
+
+        self.assertEqual(dict(h.items()), {'a': 1})
+        self.assertEqual(dict(h1.items()), {'a': 1, 'b': 2, 'c': 3})
+        self.assertEqual(dict(h2.items()), {'a': 1000, 'x': 100})
+
+    def test_map_mut_2(self):
+        h = self.Map()
+        h = h.set('a', 1)
+
+        hm1 = h.mutate()
+        hm1.set('a', 2)
+        hm1.set('a', 3)
+        hm1.set('a', 4)
+        h2 = hm1.finalize()
+
+        self.assertEqual(dict(h.items()), {'a': 1})
+        self.assertEqual(dict(h2.items()), {'a': 4})
+
+    def test_map_mut_3(self):
+        h = self.Map()
+        h = h.set('a', 1)
+        hm1 = h.mutate()
+
+        self.assertTrue(repr(hm1).startswith(
+            "<immutables.MapMutation({'a': 1})"))
+
+        with self.assertRaisesRegex(TypeError, 'unhashable type'):
+            hash(hm1)
+
+    def test_map_mut_4(self):
+        h = self.Map()
+        h = h.set('a', 1)
+        h = h.set('b', 2)
+
+        hm1 = h.mutate()
+        hm2 = h.mutate()
+
+        self.assertEqual(hm1, hm2)
+
+        hm1.set('a', 10)
+        self.assertNotEqual(hm1, hm2)
+
+        hm2.set('a', 10)
+        self.assertEqual(hm1, hm2)
+
+        hm2.delete('a')
+        self.assertNotEqual(hm1, hm2)
+
+    def test_map_mut_stress(self):
+        COLLECTION_SIZE = 7000
+        TEST_ITERS_EVERY = 647
+        RUN_XTIMES = 3
+
+        for _ in range(RUN_XTIMES):
+            h = self.Map()
+            d = dict()
+
+            for i in range(COLLECTION_SIZE // TEST_ITERS_EVERY):
+
+                hm = h.mutate()
+                for j in range(TEST_ITERS_EVERY):
+                    key = random.randint(1, 100000)
+                    key = HashKey(key % 271, str(key))
+
+                    hm.set(key, key)
+                    d[key] = key
+
+                    self.assertEqual(len(hm), len(d))
+
+                h2 = hm.finalize()
+                self.assertEqual(dict(h2.items()), d)
+                h = h2
+
+            self.assertEqual(dict(h.items()), d)
+            self.assertEqual(len(h), len(d))
+
+            it = iter(tuple(d.keys()))
+            for i in range(COLLECTION_SIZE // TEST_ITERS_EVERY):
+
+                hm = h.mutate()
+                for j in range(TEST_ITERS_EVERY):
+                    try:
+                        key = next(it)
+                    except StopIteration:
+                        break
+
+                    del d[key]
+                    hm.delete(key)
+
+                    self.assertEqual(len(hm), len(d))
+
+                h2 = hm.finalize()
+                self.assertEqual(dict(h2.items()), d)
+                h = h2
+
+            self.assertEqual(dict(h.items()), d)
+            self.assertEqual(len(h), len(d))
+
 
 class PyMapTest(BaseMapTest, unittest.TestCase):
 
