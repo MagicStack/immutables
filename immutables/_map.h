@@ -8,6 +8,7 @@
 
 
 #define Map_Check(o) (Py_TYPE(o) == &_Map_Type)
+#define MapMutation_Check(o) (Py_TYPE(o) == &_MapMutation_Type)
 
 
 /* Abstract tree node. */
@@ -16,14 +17,32 @@ typedef struct {
 } MapNode;
 
 
+#define _MapCommonFields(pref)          \
+    PyObject_HEAD                       \
+    MapNode *pref##_root;               \
+    PyObject *pref##_weakreflist;       \
+    Py_ssize_t pref##_count;
+
+
+/* Base mapping struct; used in methods shared between
+   MapObject and MapMutationObject types. */
+typedef struct {
+    _MapCommonFields(b)
+} BaseMapObject;
+
+
 /* An HAMT immutable mapping collection. */
 typedef struct {
-    PyObject_HEAD
-    MapNode *h_root;
-    PyObject *h_weakreflist;
-    Py_ssize_t h_count;
+    _MapCommonFields(h)
     Py_hash_t h_hash;
 } MapObject;
+
+
+/* MapMutation object (returned from `map.mutate()`.) */
+typedef struct {
+    _MapCommonFields(m)
+    uint64_t m_mutid;
+} MapMutationObject;
 
 
 /* A struct to hold the state of depth-first traverse of the tree.
@@ -62,6 +81,7 @@ typedef struct {
 
 
 PyTypeObject _Map_Type;
+PyTypeObject _MapMutation_Type;
 PyTypeObject _Map_ArrayNode_Type;
 PyTypeObject _Map_BitmapNode_Type;
 PyTypeObject _Map_CollisionNode_Type;

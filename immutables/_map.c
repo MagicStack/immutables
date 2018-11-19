@@ -289,11 +289,13 @@ typedef struct {
     PyObject_HEAD
     MapNode *a_array[HAMT_ARRAY_NODE_SIZE];
     Py_ssize_t a_count;
+    uint64_t a_mutid;
 } MapNode_Array;
 
 
 typedef struct {
     PyObject_VAR_HEAD
+    uint64_t b_mutid;
     uint32_t b_bitmap;
     PyObject *b_array[1];
 } MapNode_Bitmap;
@@ -301,10 +303,13 @@ typedef struct {
 
 typedef struct {
     PyObject_VAR_HEAD
+    uint64_t c_mutid;
     int32_t c_hash;
     PyObject *c_array[1];
 } MapNode_Collision;
 
+
+static volatile uint64_t mutid_counter = 1;
 
 static MapNode_Bitmap *_empty_bitmap_node;
 static MapObject *_empty_map;
@@ -331,14 +336,14 @@ map_without(MapObject *o, PyObject *key);
    - -1: An error occurred.
 */
 static int
-map_eq(MapObject *v, MapObject *w);
+map_eq(BaseMapObject *v, BaseMapObject *w);
 
 static map_find_t
-map_find(MapObject *o, PyObject *key, PyObject **val);
+map_find(BaseMapObject *o, PyObject *key, PyObject **val);
 
 /* Return the size of "o"; equivalent of "len(o)". */
 static Py_ssize_t
-map_len(MapObject *o);
+map_len(BaseMapObject *o);
 
 
 static MapObject *
@@ -347,13 +352,15 @@ map_alloc(void);
 static MapNode *
 map_node_assoc(MapNode *node,
                uint32_t shift, int32_t hash,
-               PyObject *key, PyObject *val, int* added_leaf);
+               PyObject *key, PyObject *val, int* added_leaf,
+               uint64_t mutid);
 
 static map_without_t
 map_node_without(MapNode *node,
                  uint32_t shift, int32_t hash,
                  PyObject *key,
-                 MapNode **new_node);
+                 MapNode **new_node,
+                 uint64_t mutid);
 
 static map_find_t
 map_node_find(MapNode *node,
@@ -365,10 +372,10 @@ map_node_dump(MapNode *node,
               _PyUnicodeWriter *writer, int level);
 
 static MapNode *
-map_node_array_new(Py_ssize_t);
+map_node_array_new(Py_ssize_t, uint64_t mutid);
 
 static MapNode *
-map_node_collision_new(int32_t hash, Py_ssize_t size);
+map_node_collision_new(int32_t hash, Py_ssize_t size, uint64_t mutid);
 
 static inline Py_ssize_t
 map_node_collision_count(MapNode_Collision *node);
@@ -529,7 +536,7 @@ _map_dump_format(_PyUnicodeWriter *writer, const char *format, ...)
 
 
 static MapNode *
-map_node_bitmap_new(Py_ssize_t size)
+map_node_bitmap_new(Py_ssize_t size, uint64_t mutid)
 {
     /* Create a new bitmap node of size 'size' */
 
@@ -539,7 +546,7 @@ map_node_bitmap_new(Py_ssize_t size)
     assert(size >= 0);
     assert(size % 2 == 0);
 
-    if (size == 0 && _empty_bitmap_node != NULL) {
+    if (size == 0 && _empty_bitmap_node != NULL && mutid == 0) {
         Py_INCREF(_empty_bitmap_node);
         return (MapNode *)_empty_bitmap_node;
     }
@@ -558,10 +565,11 @@ map_node_bitmap_new(Py_ssize_t size)
     }
 
     node->b_bitmap = 0;
+    node->b_mutid = mutid;
 
     PyObject_GC_Track(node);
 
-    if (size == 0 && _empty_bitmap_node == NULL) {
+    if (size == 0 && _empty_bitmap_node == NULL && mutid == 0) {
         /* Since bitmap nodes are immutable, we can cache the instance
            for size=0 and reuse it whenever we need an empty bitmap node.
         */
@@ -579,14 +587,15 @@ map_node_bitmap_count(MapNode_Bitmap *node)
 }
 
 static MapNode_Bitmap *
-map_node_bitmap_clone(MapNode_Bitmap *node)
+map_node_bitmap_clone(MapNode_Bitmap *node, uint64_t mutid)
 {
     /* Clone a bitmap node; return a new one with the same child notes. */
 
     MapNode_Bitmap *clone;
     Py_ssize_t i;
 
-    clone = (MapNode_Bitmap *)map_node_bitmap_new(Py_SIZE(node));
+    clone = (MapNode_Bitmap *)map_node_bitmap_new(
+        Py_SIZE(node), mutid);
     if (clone == NULL) {
         return NULL;
     }
@@ -601,13 +610,13 @@ map_node_bitmap_clone(MapNode_Bitmap *node)
 }
 
 static MapNode_Bitmap *
-map_node_bitmap_clone_without(MapNode_Bitmap *o, uint32_t bit)
+map_node_bitmap_clone_without(MapNode_Bitmap *o, uint32_t bit, uint64_t mutid)
 {
     assert(bit & o->b_bitmap);
     assert(map_node_bitmap_count(o) > 1);
 
     MapNode_Bitmap *new = (MapNode_Bitmap *)map_node_bitmap_new(
-        Py_SIZE(o) - 2);
+        Py_SIZE(o) - 2, mutid);
     if (new == NULL) {
         return NULL;
     }
@@ -636,7 +645,8 @@ static MapNode *
 map_node_new_bitmap_or_collision(uint32_t shift,
                                  PyObject *key1, PyObject *val1,
                                  int32_t key2_hash,
-                                 PyObject *key2, PyObject *val2)
+                                 PyObject *key2, PyObject *val2,
+                                 uint64_t mutid)
 {
     /* Helper method.  Creates a new node for key1/val and key2/val2
        pairs.
@@ -653,7 +663,7 @@ map_node_new_bitmap_or_collision(uint32_t shift,
 
     if (key1_hash == key2_hash) {
         MapNode_Collision *n;
-        n = (MapNode_Collision *)map_node_collision_new(key1_hash, 4);
+        n = (MapNode_Collision *)map_node_collision_new(key1_hash, 4, mutid);
         if (n == NULL) {
             return NULL;
         }
@@ -672,19 +682,20 @@ map_node_new_bitmap_or_collision(uint32_t shift,
     }
     else {
         int added_leaf = 0;
-        MapNode *n = map_node_bitmap_new(0);
+        MapNode *n = map_node_bitmap_new(0, mutid);
         if (n == NULL) {
             return NULL;
         }
 
         MapNode *n2 = map_node_assoc(
-            n, shift, key1_hash, key1, val1, &added_leaf);
+            n, shift, key1_hash, key1, val1, &added_leaf, mutid);
         Py_DECREF(n);
         if (n2 == NULL) {
             return NULL;
         }
 
-        n = map_node_assoc(n2, shift, key2_hash, key2, val2, &added_leaf);
+        n = map_node_assoc(
+            n2, shift, key2_hash, key2, val2, &added_leaf, mutid);
         Py_DECREF(n2);
         if (n == NULL) {
             return NULL;
@@ -697,7 +708,8 @@ map_node_new_bitmap_or_collision(uint32_t shift,
 static MapNode *
 map_node_bitmap_assoc(MapNode_Bitmap *self,
                       uint32_t shift, int32_t hash,
-                      PyObject *key, PyObject *val, int* added_leaf)
+                      PyObject *key, PyObject *val, int* added_leaf,
+                      uint64_t mutid)
 {
     /* assoc operation for bitmap nodes.
 
@@ -744,7 +756,8 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
 
             MapNode *sub_node = map_node_assoc(
                 (MapNode *)val_or_node,
-                shift + 5, hash, key, val, added_leaf);
+                shift + 5, hash, key, val, added_leaf,
+                mutid);
             if (sub_node == NULL) {
                 return NULL;
             }
@@ -755,12 +768,19 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
                 return (MapNode *)self;
             }
 
-            MapNode_Bitmap *ret = map_node_bitmap_clone(self);
-            if (ret == NULL) {
-                return NULL;
+            if (mutid != 0 && self->b_mutid == mutid) {
+                Py_SETREF(self->b_array[val_idx], (PyObject*)sub_node);
+                Py_INCREF(self);
+                return (MapNode *)self;
             }
-            Py_SETREF(ret->b_array[val_idx], (PyObject*)sub_node);
-            return (MapNode *)ret;
+            else {
+                MapNode_Bitmap *ret = map_node_bitmap_clone(self, mutid);
+                if (ret == NULL) {
+                    return NULL;
+                }
+                Py_SETREF(ret->b_array[val_idx], (PyObject*)sub_node);
+                return (MapNode *)ret;
+            }
         }
 
         assert(key != NULL);
@@ -780,13 +800,21 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
 
             /* We're setting a new value for the key we had before.
                Make a new bitmap node with a replaced value, and return it. */
-            MapNode_Bitmap *ret = map_node_bitmap_clone(self);
-            if (ret == NULL) {
-                return NULL;
+            if (mutid != 0 && self->b_mutid == mutid) {
+                Py_INCREF(val);
+                Py_SETREF(self->b_array[val_idx], val);
+                Py_INCREF(self);
+                return (MapNode *)self;
             }
-            Py_INCREF(val);
-            Py_SETREF(ret->b_array[val_idx], val);
-            return (MapNode *)ret;
+            else {
+                MapNode_Bitmap *ret = map_node_bitmap_clone(self, mutid);
+                if (ret == NULL) {
+                    return NULL;
+                }
+                Py_INCREF(val);
+                Py_SETREF(ret->b_array[val_idx], val);
+                return (MapNode *)ret;
+            }
         }
 
         /* It's a new key, and it has the same index as *one* another key.
@@ -801,22 +829,33 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
             shift + 5,
             key_or_null, val_or_node,  /* existing key/val */
             hash,
-            key, val  /* new key/val */
+            key, val,  /* new key/val */
+            self->b_mutid
         );
         if (sub_node == NULL) {
             return NULL;
         }
 
-        MapNode_Bitmap *ret = map_node_bitmap_clone(self);
-        if (ret == NULL) {
-            Py_DECREF(sub_node);
-            return NULL;
-        }
-        Py_SETREF(ret->b_array[key_idx], NULL);
-        Py_SETREF(ret->b_array[val_idx], (PyObject *)sub_node);
+        if (mutid != 0 && self->b_mutid == mutid) {
+            Py_SETREF(self->b_array[key_idx], NULL);
+            Py_SETREF(self->b_array[val_idx], (PyObject *)sub_node);
+            Py_INCREF(self);
 
-        *added_leaf = 1;
-        return (MapNode *)ret;
+            *added_leaf = 1;
+            return (MapNode *)self;
+        }
+        else {
+            MapNode_Bitmap *ret = map_node_bitmap_clone(self, mutid);
+            if (ret == NULL) {
+                Py_DECREF(sub_node);
+                return NULL;
+            }
+            Py_SETREF(ret->b_array[key_idx], NULL);
+            Py_SETREF(ret->b_array[val_idx], (PyObject *)sub_node);
+
+            *added_leaf = 1;
+            return (MapNode *)ret;
+        }
     }
     else {
         /* There was no key before with the same (shift,hash). */
@@ -848,14 +887,14 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
             MapNode *res = NULL;
 
             /* Create a new Array node. */
-            new_node = (MapNode_Array *)map_node_array_new(n + 1);
+            new_node = (MapNode_Array *)map_node_array_new(n + 1, mutid);
             if (new_node == NULL) {
                 goto fin;
             }
 
             /* Create an empty bitmap node for the next
                map_node_assoc call. */
-            empty = map_node_bitmap_new(0);
+            empty = map_node_bitmap_new(0, mutid);
             if (empty == NULL) {
                 goto fin;
             }
@@ -863,7 +902,7 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
             /* Make a new bitmap node for the key/val we're adding.
                Set that bitmap node to new-array-node[jdx]. */
             new_node->a_array[jdx] = map_node_assoc(
-                empty, shift + 5, hash, key, val, added_leaf);
+                empty, shift + 5, hash, key, val, added_leaf, mutid);
             if (new_node->a_array[jdx] == NULL) {
                 goto fin;
             }
@@ -894,7 +933,8 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
                             rehash,
                             self->b_array[j],
                             self->b_array[j + 1],
-                            added_leaf);
+                            added_leaf,
+                            mutid);
 
                         if (new_node->a_array[i] == NULL) {
                             goto fin;
@@ -930,7 +970,7 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
             /* Allocate new Bitmap node which can have one more key/val
                pair in addition to what we have already. */
             MapNode_Bitmap *new_node =
-                (MapNode_Bitmap *)map_node_bitmap_new(2 * (n + 1));
+                (MapNode_Bitmap *)map_node_bitmap_new(2 * (n + 1), mutid);
             if (new_node == NULL) {
                 return NULL;
             }
@@ -966,7 +1006,8 @@ static map_without_t
 map_node_bitmap_without(MapNode_Bitmap *self,
                         uint32_t shift, int32_t hash,
                         PyObject *key,
-                        MapNode **new_node)
+                        MapNode **new_node,
+                        uint64_t mutid)
 {
     uint32_t bit = map_bitpos(hash, shift);
     if ((self->b_bitmap & bit) == 0) {
@@ -985,10 +1026,12 @@ map_node_bitmap_without(MapNode_Bitmap *self,
         /* key == NULL means that 'value' is another tree node. */
 
         MapNode *sub_node = NULL;
+        MapNode_Bitmap *target = NULL;
 
         map_without_t res = map_node_without(
             (MapNode *)val_or_node,
-            shift + 5, hash, key, &sub_node);
+            shift + 5, hash, key, &sub_node,
+            mutid);
 
         switch (res) {
             case W_EMPTY:
@@ -1025,23 +1068,29 @@ map_node_bitmap_without(MapNode_Bitmap *self,
                            up or down.
                         */
 
-                        MapNode_Bitmap *clone = map_node_bitmap_clone(self);
-                        if (clone == NULL) {
-                            Py_DECREF(sub_node);
-                            return W_ERROR;
+                        if (mutid != 0 && self->b_mutid == mutid) {
+                            target = self;
+                            Py_INCREF(target);
+                        }
+                        else {
+                            target = map_node_bitmap_clone(self, mutid);
+                            if (target == NULL) {
+                                Py_DECREF(sub_node);
+                                return W_ERROR;
+                            }
                         }
 
                         PyObject *key = sub_tree->b_array[0];
                         PyObject *val = sub_tree->b_array[1];
 
                         Py_INCREF(key);
-                        Py_XSETREF(clone->b_array[key_idx], key);
+                        Py_XSETREF(target->b_array[key_idx], key);
                         Py_INCREF(val);
-                        Py_SETREF(clone->b_array[val_idx], val);
+                        Py_SETREF(target->b_array[val_idx], val);
 
                         Py_DECREF(sub_tree);
 
-                        *new_node = (MapNode *)clone;
+                        *new_node = (MapNode *)target;
                         return W_NEWNODE;
                     }
                 }
@@ -1056,15 +1105,21 @@ map_node_bitmap_without(MapNode_Bitmap *self,
                 }
 #endif
 
-                MapNode_Bitmap *clone = map_node_bitmap_clone(self);
-                if (clone == NULL) {
-                    return W_ERROR;
+                if (mutid != 0 && self->b_mutid == mutid) {
+                    target = self;
+                    Py_INCREF(target);
+                }
+                else {
+                    target = map_node_bitmap_clone(self, mutid);
+                    if (target == NULL) {
+                        return W_ERROR;
+                    }
                 }
 
-                Py_SETREF(clone->b_array[val_idx],
+                Py_SETREF(target->b_array[val_idx],
                           (PyObject *)sub_node);  /* borrow */
 
-                *new_node = (MapNode *)clone;
+                *new_node = (MapNode *)target;
                 return W_NEWNODE;
             }
 
@@ -1093,7 +1148,7 @@ map_node_bitmap_without(MapNode_Bitmap *self,
         }
 
         *new_node = (MapNode *)
-            map_node_bitmap_clone_without(self, bit);
+            map_node_bitmap_clone_without(self, bit, mutid);
         if (*new_node == NULL) {
             return W_ERROR;
         }
@@ -1266,7 +1321,7 @@ error:
 
 
 static MapNode *
-map_node_collision_new(int32_t hash, Py_ssize_t size)
+map_node_collision_new(int32_t hash, Py_ssize_t size, uint64_t mutid)
 {
     /* Create a new Collision node. */
 
@@ -1289,8 +1344,9 @@ map_node_collision_new(int32_t hash, Py_ssize_t size)
     Py_SIZE(node) = size;
     node->c_hash = hash;
 
-    PyObject_GC_Track(node);
+    node->c_mutid = mutid;
 
+    PyObject_GC_Track(node);
     return (MapNode *)node;
 }
 
@@ -1324,7 +1380,8 @@ map_node_collision_find_index(MapNode_Collision *self, PyObject *key,
 static MapNode *
 map_node_collision_assoc(MapNode_Collision *self,
                          uint32_t shift, int32_t hash,
-                         PyObject *key, PyObject *val, int* added_leaf)
+                         PyObject *key, PyObject *val, int* added_leaf,
+                         uint64_t mutid)
 {
     /* Set a new key to this level (currently a Collision node)
        of the tree. */
@@ -1350,7 +1407,7 @@ map_node_collision_assoc(MapNode_Collision *self,
                    add a new key/value to the cloned node. */
 
                 new_node = (MapNode_Collision *)map_node_collision_new(
-                    self->c_hash, Py_SIZE(self) + 2);
+                    self->c_hash, Py_SIZE(self) + 2, mutid);
                 if (new_node == NULL) {
                     return NULL;
                 }
@@ -1381,18 +1438,26 @@ map_node_collision_assoc(MapNode_Collision *self,
                     return (MapNode *)self;
                 }
 
-                /* We need to replace old value for the key
-                   with a new value.  Create a new Collision node.*/
-                new_node = (MapNode_Collision *)map_node_collision_new(
-                    self->c_hash, Py_SIZE(self));
-                if (new_node == NULL) {
-                    return NULL;
-                }
+                /* We need to replace old value for the key with
+                   a new value. */
 
-                /* Copy all elements of the old node to the new one. */
-                for (i = 0; i < Py_SIZE(self); i++) {
-                    Py_INCREF(self->c_array[i]);
-                    new_node->c_array[i] = self->c_array[i];
+                if (mutid != 0 && self->c_mutid == mutid) {
+                    new_node = self;
+                    Py_INCREF(self);
+                }
+                else {
+                    /* Create a new Collision node.*/
+                    new_node = (MapNode_Collision *)map_node_collision_new(
+                        self->c_hash, Py_SIZE(self), mutid);
+                    if (new_node == NULL) {
+                        return NULL;
+                    }
+
+                    /* Copy all elements of the old node to the new one. */
+                    for (i = 0; i < Py_SIZE(self); i++) {
+                        Py_INCREF(self->c_array[i]);
+                        new_node->c_array[i] = self->c_array[i];
+                    }
                 }
 
                 /* Replace the old value with the new value for the our key. */
@@ -1418,7 +1483,7 @@ map_node_collision_assoc(MapNode_Collision *self,
         MapNode_Bitmap *new_node;
         MapNode *assoc_res;
 
-        new_node = (MapNode_Bitmap *)map_node_bitmap_new(2);
+        new_node = (MapNode_Bitmap *)map_node_bitmap_new(2, mutid);
         if (new_node == NULL) {
             return NULL;
         }
@@ -1427,7 +1492,7 @@ map_node_collision_assoc(MapNode_Collision *self,
         new_node->b_array[1] = (PyObject*) self;
 
         assoc_res = map_node_bitmap_assoc(
-            new_node, shift, hash, key, val, added_leaf);
+            new_node, shift, hash, key, val, added_leaf, mutid);
         Py_DECREF(new_node);
         return assoc_res;
     }
@@ -1443,7 +1508,8 @@ static map_without_t
 map_node_collision_without(MapNode_Collision *self,
                            uint32_t shift, int32_t hash,
                            PyObject *key,
-                           MapNode **new_node)
+                           MapNode **new_node,
+                           uint64_t mutid)
 {
     if (hash != self->c_hash) {
         return W_NOT_FOUND;
@@ -1480,7 +1546,7 @@ map_node_collision_without(MapNode_Collision *self,
                    Bitmap node.
                 */
                 MapNode_Bitmap *node = (MapNode_Bitmap *)
-                    map_node_bitmap_new(2);
+                    map_node_bitmap_new(2, mutid);
                 if (node == NULL) {
                     return W_ERROR;
                 }
@@ -1509,7 +1575,7 @@ map_node_collision_without(MapNode_Collision *self,
                less key/value pair */
             MapNode_Collision *new = (MapNode_Collision *)
                 map_node_collision_new(
-                    self->c_hash, Py_SIZE(self) - 2);
+                    self->c_hash, Py_SIZE(self) - 2, mutid);
             if (new == NULL) {
                 return W_ERROR;
             }
@@ -1636,7 +1702,7 @@ error:
 
 
 static MapNode *
-map_node_array_new(Py_ssize_t count)
+map_node_array_new(Py_ssize_t count, uint64_t mutid)
 {
     Py_ssize_t i;
 
@@ -1651,13 +1717,14 @@ map_node_array_new(Py_ssize_t count)
     }
 
     node->a_count = count;
+    node->a_mutid = mutid;
 
     PyObject_GC_Track(node);
     return (MapNode *)node;
 }
 
 static MapNode_Array *
-map_node_array_clone(MapNode_Array *node)
+map_node_array_clone(MapNode_Array *node, uint64_t mutid)
 {
     MapNode_Array *clone;
     Py_ssize_t i;
@@ -1665,7 +1732,7 @@ map_node_array_clone(MapNode_Array *node)
     VALIDATE_ARRAY_NODE(node)
 
     /* Create a new Array node. */
-    clone = (MapNode_Array *)map_node_array_new(node->a_count);
+    clone = (MapNode_Array *)map_node_array_new(node->a_count, mutid);
     if (clone == NULL) {
         return NULL;
     }
@@ -1676,6 +1743,8 @@ map_node_array_clone(MapNode_Array *node)
         clone->a_array[i] = node->a_array[i];
     }
 
+    clone->a_mutid = mutid;
+
     VALIDATE_ARRAY_NODE(clone)
     return clone;
 }
@@ -1683,7 +1752,8 @@ map_node_array_clone(MapNode_Array *node)
 static MapNode *
 map_node_array_assoc(MapNode_Array *self,
                      uint32_t shift, int32_t hash,
-                     PyObject *key, PyObject *val, int* added_leaf)
+                     PyObject *key, PyObject *val, int* added_leaf,
+                     uint64_t mutid)
 {
     /* Set a new key to this level (currently a Collision node)
        of the tree.
@@ -1705,7 +1775,7 @@ map_node_array_assoc(MapNode_Array *self,
         MapNode_Bitmap *empty = NULL;
 
         /* Get an empty Bitmap node to work with. */
-        empty = (MapNode_Bitmap *)map_node_bitmap_new(0);
+        empty = (MapNode_Bitmap *)map_node_bitmap_new(0, mutid);
         if (empty == NULL) {
             return NULL;
         }
@@ -1714,24 +1784,31 @@ map_node_array_assoc(MapNode_Array *self,
            creating a new Bitmap node with our key/value pair. */
         child_node = map_node_bitmap_assoc(
             empty,
-            shift + 5, hash, key, val, added_leaf);
+            shift + 5, hash, key, val, added_leaf, mutid);
         Py_DECREF(empty);
         if (child_node == NULL) {
             return NULL;
         }
 
-        /* Create a new Array node. */
-        new_node = (MapNode_Array *)map_node_array_new(self->a_count + 1);
-        if (new_node == NULL) {
-            Py_DECREF(child_node);
-            return NULL;
+        if (mutid != 0 && self->a_mutid == mutid) {
+            new_node = self;
+            Py_INCREF(self);
         }
+        else {
+            /* Create a new Array node. */
+            new_node = (MapNode_Array *)map_node_array_new(
+                self->a_count + 1, mutid);
+            if (new_node == NULL) {
+                Py_DECREF(child_node);
+                return NULL;
+            }
 
-        /* Copy all elements from the current Array node to the
-           new one. */
-        for (i = 0; i < HAMT_ARRAY_NODE_SIZE; i++) {
-            Py_XINCREF(self->a_array[i]);
-            new_node->a_array[i] = self->a_array[i];
+            /* Copy all elements from the current Array node to the
+               new one. */
+            for (i = 0; i < HAMT_ARRAY_NODE_SIZE; i++) {
+                Py_XINCREF(self->a_array[i]);
+                new_node->a_array[i] = self->a_array[i];
+            }
         }
 
         assert(new_node->a_array[idx] == NULL);
@@ -1741,8 +1818,9 @@ map_node_array_assoc(MapNode_Array *self,
     else {
         /* There's a child node for the given hash.
            Set the key to it./ */
+
         child_node = map_node_assoc(
-            node, shift + 5, hash, key, val, added_leaf);
+            node, shift + 5, hash, key, val, added_leaf, mutid);
         if (child_node == NULL) {
             return NULL;
         }
@@ -1751,7 +1829,14 @@ map_node_array_assoc(MapNode_Array *self,
             return (MapNode *)self;
         }
 
-        new_node = map_node_array_clone(self);
+        if (mutid != 0 && self->a_mutid == mutid) {
+            new_node = self;
+            Py_INCREF(self);
+        }
+        else {
+            new_node = map_node_array_clone(self, mutid);
+        }
+
         if (new_node == NULL) {
             Py_DECREF(child_node);
             return NULL;
@@ -1768,7 +1853,8 @@ static map_without_t
 map_node_array_without(MapNode_Array *self,
                        uint32_t shift, int32_t hash,
                        PyObject *key,
-                       MapNode **new_node)
+                       MapNode **new_node,
+                       uint64_t mutid)
 {
     uint32_t idx = map_mask(hash, shift);
     MapNode *node = self->a_array[idx];
@@ -1778,9 +1864,10 @@ map_node_array_without(MapNode_Array *self,
     }
 
     MapNode *sub_node = NULL;
+    MapNode_Array *target = NULL;
     map_without_t res = map_node_without(
         (MapNode *)node,
-        shift + 5, hash, key, &sub_node);
+        shift + 5, hash, key, &sub_node, mutid);
 
     switch (res) {
         case W_NOT_FOUND:
@@ -1794,14 +1881,20 @@ map_node_array_without(MapNode_Array *self,
             */
             assert(sub_node != NULL);
 
-            MapNode_Array *clone = map_node_array_clone(self);
-            if (clone == NULL) {
-                Py_DECREF(sub_node);
-                return W_ERROR;
+            if (mutid != 0 && self->a_mutid == mutid) {
+                target = self;
+                Py_INCREF(self);
+            }
+            else {
+                target = map_node_array_clone(self, mutid);
+                if (target == NULL) {
+                    Py_DECREF(sub_node);
+                    return W_ERROR;
+                }
             }
 
-            Py_SETREF(clone->a_array[idx], sub_node);  /* borrow */
-            *new_node = (MapNode*)clone;  /* borrow */
+            Py_SETREF(target->a_array[idx], sub_node);  /* borrow */
+            *new_node = (MapNode*)target;  /* borrow */
             return W_NEWNODE;
         }
 
@@ -1824,14 +1917,21 @@ map_node_array_without(MapNode_Array *self,
                    greater than 15.
                 */
 
-                MapNode_Array *new = map_node_array_clone(self);
-                if (new == NULL) {
-                    return W_ERROR;
+                if (mutid != 0 && self->a_mutid == mutid) {
+                    target = self;
+                    Py_INCREF(self);
                 }
-                new->a_count = new_count;
-                Py_CLEAR(new->a_array[idx]);
+                else {
+                    target = map_node_array_clone(self, mutid);
+                    if (target == NULL) {
+                        return W_ERROR;
+                    }
+                    target->a_count = new_count;
+                }
 
-                *new_node = (MapNode*)new;  /* borrow */
+                Py_CLEAR(target->a_array[idx]);
+
+                *new_node = (MapNode*)target;  /* borrow */
                 return W_NEWNODE;
             }
 
@@ -1842,7 +1942,7 @@ map_node_array_without(MapNode_Array *self,
             uint32_t bitmap = 0;
 
             MapNode_Bitmap *new = (MapNode_Bitmap *)
-                map_node_bitmap_new(bitmap_size);
+                map_node_bitmap_new(bitmap_size, mutid);
             if (new == NULL) {
                 return W_ERROR;
             }
@@ -2025,7 +2125,8 @@ error:
 static MapNode *
 map_node_assoc(MapNode *node,
                uint32_t shift, int32_t hash,
-               PyObject *key, PyObject *val, int* added_leaf)
+               PyObject *key, PyObject *val, int* added_leaf,
+               uint64_t mutid)
 {
     /* Set key/value to the 'node' starting with the given shift/hash.
        Return a new node, or the same node if key/value already
@@ -2041,18 +2142,18 @@ map_node_assoc(MapNode *node,
     if (IS_BITMAP_NODE(node)) {
         return map_node_bitmap_assoc(
             (MapNode_Bitmap *)node,
-            shift, hash, key, val, added_leaf);
+            shift, hash, key, val, added_leaf, mutid);
     }
     else if (IS_ARRAY_NODE(node)) {
         return map_node_array_assoc(
             (MapNode_Array *)node,
-            shift, hash, key, val, added_leaf);
+            shift, hash, key, val, added_leaf, mutid);
     }
     else {
         assert(IS_COLLISION_NODE(node));
         return map_node_collision_assoc(
             (MapNode_Collision *)node,
-            shift, hash, key, val, added_leaf);
+            shift, hash, key, val, added_leaf, mutid);
     }
 }
 
@@ -2060,26 +2161,30 @@ static map_without_t
 map_node_without(MapNode *node,
                  uint32_t shift, int32_t hash,
                  PyObject *key,
-                 MapNode **new_node)
+                 MapNode **new_node,
+                 uint64_t mutid)
 {
     if (IS_BITMAP_NODE(node)) {
         return map_node_bitmap_without(
             (MapNode_Bitmap *)node,
             shift, hash, key,
-            new_node);
+            new_node,
+            mutid);
     }
     else if (IS_ARRAY_NODE(node)) {
         return map_node_array_without(
             (MapNode_Array *)node,
             shift, hash, key,
-            new_node);
+            new_node,
+            mutid);
     }
     else {
         assert(IS_COLLISION_NODE(node));
         return map_node_collision_without(
             (MapNode_Collision *)node,
             shift, hash, key,
-            new_node);
+            new_node,
+            mutid);
     }
 }
 
@@ -2311,7 +2416,8 @@ map_assoc(MapObject *o, PyObject *key, PyObject *val)
 
     new_root = map_node_assoc(
         (MapNode *)(o->h_root),
-        0, key_hash, key, val, &added_leaf);
+        0, key_hash, key, val, &added_leaf,
+        0);
     if (new_root == NULL) {
         return NULL;
     }
@@ -2347,7 +2453,8 @@ map_without(MapObject *o, PyObject *key)
     map_without_t res = map_node_without(
         (MapNode *)(o->h_root),
         0, key_hash, key,
-        &new_root);
+        &new_root,
+        0);
 
     switch (res) {
         case W_ERROR:
@@ -2377,9 +2484,9 @@ map_without(MapObject *o, PyObject *key)
 }
 
 static map_find_t
-map_find(MapObject *o, PyObject *key, PyObject **val)
+map_find(BaseMapObject *o, PyObject *key, PyObject **val)
 {
-    if (o->h_count == 0) {
+    if (o->b_count == 0) {
         return F_NOT_FOUND;
     }
 
@@ -2388,17 +2495,17 @@ map_find(MapObject *o, PyObject *key, PyObject **val)
         return F_ERROR;
     }
 
-    return map_node_find(o->h_root, 0, key_hash, key, val);
+    return map_node_find(o->b_root, 0, key_hash, key, val);
 }
 
 static int
-map_eq(MapObject *v, MapObject *w)
+map_eq(BaseMapObject *v, BaseMapObject *w)
 {
     if (v == w) {
         return 1;
     }
 
-    if (v->h_count != w->h_count) {
+    if (v->b_count != w->b_count) {
         return 0;
     }
 
@@ -2409,7 +2516,7 @@ map_eq(MapObject *v, MapObject *w)
     PyObject *v_val;
     PyObject *w_val;
 
-    map_iterator_init(&iter, v->h_root);
+    map_iterator_init(&iter, v->b_root);
 
     do {
         iter_res = map_iterator_next(&iter, &v_key, &v_val);
@@ -2439,9 +2546,9 @@ map_eq(MapObject *v, MapObject *w)
 }
 
 static Py_ssize_t
-map_len(MapObject *o)
+map_len(BaseMapObject *o)
 {
-    return o->h_count;
+    return o->b_count;
 }
 
 static MapObject *
@@ -2475,7 +2582,7 @@ map_new(void)
         return NULL;
     }
 
-    o->h_root = map_node_bitmap_new(0);
+    o->h_root = map_node_bitmap_new(0, 0);
     if (o->h_root == NULL) {
         Py_DECREF(o);
         return NULL;
@@ -2692,25 +2799,25 @@ map_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 }
 
 static int
-map_tp_clear(MapObject *self)
+map_tp_clear(BaseMapObject *self)
 {
-    Py_CLEAR(self->h_root);
+    Py_CLEAR(self->b_root);
     return 0;
 }
 
 
 static int
-map_tp_traverse(MapObject *self, visitproc visit, void *arg)
+map_tp_traverse(BaseMapObject *self, visitproc visit, void *arg)
 {
-    Py_VISIT(self->h_root);
+    Py_VISIT(self->b_root);
     return 0;
 }
 
 static void
-map_tp_dealloc(MapObject *self)
+map_tp_dealloc(BaseMapObject *self)
 {
     PyObject_GC_UnTrack(self);
-    if (self->h_weakreflist != NULL) {
+    if (self->b_weakreflist != NULL) {
         PyObject_ClearWeakRefs((PyObject*)self);
     }
     (void)map_tp_clear(self);
@@ -2725,7 +2832,7 @@ map_tp_richcompare(PyObject *v, PyObject *w, int op)
         Py_RETURN_NOTIMPLEMENTED;
     }
 
-    int res = map_eq((MapObject *)v, (MapObject *)w);
+    int res = map_eq((BaseMapObject *)v, (BaseMapObject *)w);
     if (res < 0) {
         return NULL;
     }
@@ -2743,7 +2850,7 @@ map_tp_richcompare(PyObject *v, PyObject *w, int op)
 }
 
 static int
-map_tp_contains(MapObject *self, PyObject *key)
+map_tp_contains(BaseMapObject *self, PyObject *key)
 {
     PyObject *val;
     map_find_t res = map_find(self, key, &val);
@@ -2760,7 +2867,7 @@ map_tp_contains(MapObject *self, PyObject *key)
 }
 
 static PyObject *
-map_tp_subscript(MapObject *self, PyObject *key)
+map_tp_subscript(BaseMapObject *self, PyObject *key)
 {
     PyObject *val;
     map_find_t res = map_find(self, key, &val);
@@ -2779,7 +2886,7 @@ map_tp_subscript(MapObject *self, PyObject *key)
 }
 
 static Py_ssize_t
-map_tp_len(MapObject *self)
+map_tp_len(BaseMapObject *self)
 {
     return map_len(self);
 }
@@ -2804,7 +2911,7 @@ map_py_set(MapObject *self, PyObject *args)
 }
 
 static PyObject *
-map_py_get(MapObject *self, PyObject *args)
+map_py_get(BaseMapObject *self, PyObject *args)
 {
     PyObject *key;
     PyObject *def = NULL;
@@ -2839,6 +2946,27 @@ map_py_delete(MapObject *self, PyObject *key)
 }
 
 static PyObject *
+map_py_mutate(MapObject *self, PyObject *args)
+{
+
+    MapMutationObject *o;
+    o = PyObject_GC_New(MapMutationObject, &_MapMutation_Type);
+    if (o == NULL) {
+        return NULL;
+    }
+    o->m_weakreflist = NULL;
+    o->m_count = self->h_count;
+
+    Py_INCREF(self->h_root);
+    o->m_root = self->h_root;
+
+    o->m_mutid = mutid_counter++;
+
+    PyObject_GC_Track(o);
+    return (PyObject *)o;
+}
+
+static PyObject *
 map_py_items(MapObject *self, PyObject *args)
 {
     return map_new_iteritems(self);
@@ -2864,28 +2992,37 @@ map_py_dump(MapObject *self, PyObject *args)
 
 
 static PyObject *
-map_py_repr(MapObject *self)
+map_py_repr(BaseMapObject *m)
 {
     Py_ssize_t i;
     _PyUnicodeWriter writer;
 
 
-    i = Py_ReprEnter((PyObject *)self);
+    i = Py_ReprEnter((PyObject *)m);
     if (i != 0) {
         return i > 0 ? PyUnicode_FromString("{...}") : NULL;
     }
 
     _PyUnicodeWriter_Init(&writer);
 
-    if (_PyUnicodeWriter_WriteASCIIString(
-            &writer, "<immutables.Map({", 17) < 0)
-    {
-        goto error;
+    if (MapMutation_Check(m)) {
+        if (_PyUnicodeWriter_WriteASCIIString(
+                &writer, "<immutables.MapMutation({", 25) < 0)
+        {
+            goto error;
+        }
+    }
+    else {
+        if (_PyUnicodeWriter_WriteASCIIString(
+                &writer, "<immutables.Map({", 17) < 0)
+        {
+            goto error;
+        }
     }
 
     MapIteratorState iter;
     map_iter_t iter_res;
-    map_iterator_init(&iter, self->h_root);
+    map_iterator_init(&iter, m->b_root);
     int second = 0;
     do {
         PyObject *v_key;
@@ -2931,7 +3068,7 @@ map_py_repr(MapObject *self)
         goto error;
     }
 
-    PyObject *addr = PyUnicode_FromFormat(" at %p>", self);
+    PyObject *addr = PyUnicode_FromFormat(" at %p>", m);
     if (addr == NULL) {
         goto error;
     }
@@ -2941,12 +3078,12 @@ map_py_repr(MapObject *self)
     }
     Py_DECREF(addr);
 
-    Py_ReprLeave((PyObject *)self);
+    Py_ReprLeave((PyObject *)m);
     return _PyUnicodeWriter_Finish(&writer);
 
 error:
     _PyUnicodeWriter_Dealloc(&writer);
-    Py_ReprLeave((PyObject *)self);
+    Py_ReprLeave((PyObject *)m);
     return NULL;
 }
 
@@ -3014,6 +3151,7 @@ static PyMethodDef Map_methods[] = {
     {"set", (PyCFunction)map_py_set, METH_VARARGS, NULL},
     {"get", (PyCFunction)map_py_get, METH_VARARGS, NULL},
     {"delete", (PyCFunction)map_py_delete, METH_O, NULL},
+    {"mutate", (PyCFunction)map_py_mutate, METH_NOARGS, NULL},
     {"items", (PyCFunction)map_py_items, METH_NOARGS, NULL},
     {"keys", (PyCFunction)map_py_keys, METH_NOARGS, NULL},
     {"values", (PyCFunction)map_py_values, METH_NOARGS, NULL},
@@ -3057,6 +3195,187 @@ PyTypeObject _Map_Type = {
     .tp_weaklistoffset = offsetof(MapObject, h_weakreflist),
     .tp_hash = (hashfunc)map_py_hash,
     .tp_repr = (reprfunc)map_py_repr,
+};
+
+
+/////////////////////////////////// MapMutation
+
+
+static PyObject *
+mapmut_py_set(MapMutationObject *o, PyObject *args)
+{
+    PyObject *key;
+    PyObject *val;
+
+    if (!PyArg_UnpackTuple(args, "set", 2, 2, &key, &val)) {
+        return NULL;
+    }
+
+    int32_t key_hash;
+    int added_leaf = 0;
+
+    key_hash = map_hash(key);
+    if (key_hash == -1) {
+        return NULL;
+    }
+
+    MapNode *new_root = map_node_assoc(
+        (MapNode *)(o->m_root),
+        0, key_hash, key, val, &added_leaf,
+        o->m_mutid);
+    if (new_root == NULL) {
+        return NULL;
+    }
+
+    if (added_leaf) {
+        o->m_count++;
+    }
+
+    if (new_root == o->m_root) {
+        Py_DECREF(new_root);
+        goto done;
+    }
+
+    Py_SETREF(o->m_root, new_root);
+
+done:
+    Py_RETURN_NONE;
+}
+
+
+static PyObject *
+mapmut_py_delete(MapMutationObject *o, PyObject *key)
+{
+    int32_t key_hash = map_hash(key);
+    if (key_hash == -1) {
+        return NULL;
+    }
+
+    MapNode *new_root;
+
+    map_without_t res = map_node_without(
+        (MapNode *)(o->m_root),
+        0, key_hash, key,
+        &new_root,
+        o->m_mutid);
+
+    switch (res) {
+        case W_ERROR:
+            return NULL;
+        case W_EMPTY:
+            new_root = map_node_bitmap_new(0, o->m_mutid);
+            if (new_root == NULL) {
+                return NULL;
+            }
+            Py_SETREF(o->m_root, new_root);
+            o->m_count = 0;
+            goto done;
+
+        case W_NOT_FOUND:
+            PyErr_SetObject(PyExc_KeyError, key);
+            return NULL;
+        case W_NEWNODE: {
+            assert(new_root != NULL);
+            Py_SETREF(o->m_root, new_root);
+            o->m_count--;
+            goto done;
+        }
+        default:
+            abort();
+    }
+
+done:
+    Py_RETURN_NONE;
+}
+
+
+static PyObject *
+mapmut_tp_richcompare(PyObject *v, PyObject *w, int op)
+{
+    if (!MapMutation_Check(v) || !MapMutation_Check(w) ||
+            (op != Py_EQ && op != Py_NE))
+    {
+        Py_RETURN_NOTIMPLEMENTED;
+    }
+
+    int res = map_eq((BaseMapObject *)v, (BaseMapObject *)w);
+    if (res < 0) {
+        return NULL;
+    }
+
+    if (op == Py_NE) {
+        res = !res;
+    }
+
+    if (res) {
+        Py_RETURN_TRUE;
+    }
+    else {
+        Py_RETURN_FALSE;
+    }
+}
+
+
+static PyObject *
+mapmut_py_finalize(MapMutationObject *self, PyObject *args)
+{
+    self->m_mutid = 0;
+
+    MapObject *o = map_alloc();
+    if (o == NULL) {
+        return NULL;
+    }
+
+    Py_INCREF(self->m_root);
+    o->h_root = self->m_root;
+    o->h_count = self->m_count;
+
+    return (PyObject *)o;
+}
+
+
+static PyMethodDef MapMutation_methods[] = {
+    {"set", (PyCFunction)mapmut_py_set, METH_VARARGS, NULL},
+    {"get", (PyCFunction)map_py_get, METH_VARARGS, NULL},
+    {"delete", (PyCFunction)mapmut_py_delete, METH_O, NULL},
+    {"finalize", (PyCFunction)mapmut_py_finalize, METH_NOARGS, NULL},
+    {NULL, NULL}
+};
+
+static PySequenceMethods MapMutation_as_sequence = {
+    0,                                /* sq_length */
+    0,                                /* sq_concat */
+    0,                                /* sq_repeat */
+    0,                                /* sq_item */
+    0,                                /* sq_slice */
+    0,                                /* sq_ass_item */
+    0,                                /* sq_ass_slice */
+    (objobjproc)map_tp_contains,      /* sq_contains */
+    0,                                /* sq_inplace_concat */
+    0,                                /* sq_inplace_repeat */
+};
+
+static PyMappingMethods MapMutation_as_mapping = {
+    (lenfunc)map_tp_len,             /* mp_length */
+    (binaryfunc)map_tp_subscript,    /* mp_subscript */
+};
+
+PyTypeObject _MapMutation_Type = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "immutables._map.MapMutation",
+    sizeof(MapMutationObject),
+    .tp_methods = MapMutation_methods,
+    .tp_as_mapping = &MapMutation_as_mapping,
+    .tp_as_sequence = &MapMutation_as_sequence,
+    .tp_dealloc = (destructor)map_tp_dealloc,
+    .tp_getattro = PyObject_GenericGetAttr,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+    .tp_traverse = (traverseproc)map_tp_traverse,
+    .tp_richcompare = mapmut_tp_richcompare,
+    .tp_clear = (inquiry)map_tp_clear,
+    .tp_weaklistoffset = offsetof(MapMutationObject, m_weakreflist),
+    .tp_repr = (reprfunc)map_py_repr,
+    .tp_hash = PyObject_HashNotImplemented,
 };
 
 
@@ -3113,7 +3432,7 @@ module_free(void *m)
 
 static struct PyModuleDef _mapmodule = {
     PyModuleDef_HEAD_INIT,      /* m_base */
-    "_map"  ,                   /* m_name */
+    "_map",                     /* m_name */
     NULL,                       /* m_doc */
     -1,                         /* m_size */
     NULL,                       /* m_methods */
@@ -3130,6 +3449,7 @@ PyInit__map(void)
     PyObject *m = PyModule_Create(&_mapmodule);
 
     if ((PyType_Ready(&_Map_Type) < 0) ||
+        (PyType_Ready(&_MapMutation_Type) < 0) ||
         (PyType_Ready(&_Map_ArrayNode_Type) < 0) ||
         (PyType_Ready(&_Map_BitmapNode_Type) < 0) ||
         (PyType_Ready(&_Map_CollisionNode_Type) < 0) ||
