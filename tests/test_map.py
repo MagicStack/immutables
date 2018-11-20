@@ -943,8 +943,8 @@ class BaseMapTest:
         self.assertEqual(hm2['a'], 1000)
         self.assertTrue('x' in hm2)
 
-        h1 = hm1.finalize()
-        h2 = hm2.finalize()
+        h1 = hm1.finish()
+        h2 = hm2.finish()
 
         self.assertTrue(isinstance(h1, self.Map))
 
@@ -960,7 +960,7 @@ class BaseMapTest:
         hm1.set('a', 2)
         hm1.set('a', 3)
         hm1.set('a', 4)
-        h2 = hm1.finalize()
+        h2 = hm1.finish()
 
         self.assertEqual(dict(h.items()), {'a': 1})
         self.assertEqual(dict(h2.items()), {'a': 4})
@@ -1124,22 +1124,22 @@ class BaseMapTest:
 
         mm = m.mutate()
         self.assertEqual(mm.pop('a', 1), 1)
-        self.assertEqual(mm.finalize(), self.Map({'b': 2}))
+        self.assertEqual(mm.finish(), self.Map({'b': 2}))
 
         mm = m.mutate()
         self.assertEqual(mm.pop('b', 1), 2)
-        self.assertEqual(mm.finalize(), self.Map({'a': 1}))
+        self.assertEqual(mm.finish(), self.Map({'a': 1}))
 
         mm = m.mutate()
         self.assertEqual(mm.pop('b', 1), 2)
         del mm['a']
-        self.assertEqual(mm.finalize(), self.Map())
+        self.assertEqual(mm.finish(), self.Map())
 
     def test_map_mut_12(self):
         m = self.Map({'a': 1, 'b': 2})
 
         mm = m.mutate()
-        mm.finalize()
+        mm.finish()
 
         with self.assertRaisesRegex(ValueError, 'has been finalized'):
             mm.pop('a')
@@ -1181,7 +1181,7 @@ class BaseMapTest:
             mm['z'] = 100
             del mm['a']
 
-        self.assertEqual(mm.finalize(), self.Map(z=100, b=2))
+        self.assertEqual(mm.finish(), self.Map(z=100, b=2))
 
     def test_map_mut_15(self):
         m = self.Map(a=1, b=2)
@@ -1192,7 +1192,7 @@ class BaseMapTest:
                 del mm['a']
                 1 / 0
 
-        self.assertEqual(mm.finalize(), self.Map(z=100, b=2))
+        self.assertEqual(mm.finish(), self.Map(z=100, b=2))
         self.assertEqual(m, self.Map(a=1, b=2))
 
     def test_map_mut_stress(self):
@@ -1216,7 +1216,7 @@ class BaseMapTest:
 
                     self.assertEqual(len(hm), len(d))
 
-                h2 = hm.finalize()
+                h2 = hm.finish()
                 self.assertEqual(dict(h2.items()), d)
                 h = h2
 
@@ -1238,7 +1238,7 @@ class BaseMapTest:
 
                     self.assertEqual(len(hm), len(d))
 
-                h2 = hm.finalize()
+                h2 = hm.finish()
                 self.assertEqual(dict(h2.items()), d)
                 h = h2
 
