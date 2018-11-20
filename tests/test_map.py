@@ -637,6 +637,17 @@ class BaseMapTest:
             set(list(it)),
             {(A, 'a'), (B, 'b'), (C, 'c'), (D, 'd'), (E, 'e'), (F, 'f')})
 
+    def test_map_items_3(self):
+        h = self.Map()
+        self.assertEqual(len(h.items()), 0)
+        self.assertEqual(list(h.items()), [])
+
+    def test_map_items_4(self):
+        h = self.Map(a=1, b=2, c=3)
+        k = h.items()
+        self.assertEqual(set(k), {('a', 1), ('b', 2), ('c', 3)})
+        self.assertEqual(set(k), {('a', 1), ('b', 2), ('c', 3)})
+
     def test_map_keys_1(self):
         A = HashKey(100, 'A')
         B = HashKey(101, 'B')
@@ -656,6 +667,12 @@ class BaseMapTest:
         self.assertEqual(set(list(h.keys())), {A, B, C, D, E, F})
         self.assertEqual(set(list(h)), {A, B, C, D, E, F})
 
+    def test_map_keys_2(self):
+        h = self.Map(a=1, b=2, c=3)
+        k = h.keys()
+        self.assertEqual(set(k), {'a', 'b', 'c'})
+        self.assertEqual(set(k), {'a', 'b', 'c'})
+
     def test_map_values_1(self):
         A = HashKey(100, 'A')
         B = HashKey(101, 'B')
@@ -674,10 +691,11 @@ class BaseMapTest:
 
         self.assertEqual(set(list(h.values())), {'a', 'b', 'c', 'd', 'e', 'f'})
 
-    def test_map_items_3(self):
-        h = self.Map()
-        self.assertEqual(len(h.items()), 0)
-        self.assertEqual(list(h.items()), [])
+    def test_map_values_2(self):
+        h = self.Map(a=1, b=2, c=3)
+        k = h.values()
+        self.assertEqual(set(k), {1, 2, 3})
+        self.assertEqual(set(k), {1, 2, 3})
 
     def test_map_eq_1(self):
         A = HashKey(100, 'A')
@@ -776,7 +794,7 @@ class BaseMapTest:
         h = h.set(A, h)
 
         ref = weakref.ref(h)
-        hi = h.items()
+        hi = iter(h.items())
         next(hi)
 
         del h, hi

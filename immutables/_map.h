@@ -72,12 +72,23 @@ typedef struct {
    just a key for the 'Keys' iterator, and a value for the 'Values'
    iterator.
 */
+
 typedef struct {
     PyObject_HEAD
-    MapObject *hi_obj;
-    MapIteratorState hi_iter;
-    binaryfunc hi_yield;
+    MapObject *mv_obj;
+    binaryfunc mv_yield;
+    PyTypeObject *mv_itertype;
+} MapView;
+
+typedef struct {
+    PyObject_HEAD
+    MapObject *mi_obj;
+    binaryfunc mi_yield;
+    MapIteratorState mi_iter;
 } MapIterator;
+
+
+/* PyTypes */
 
 
 PyTypeObject _Map_Type;
@@ -88,6 +99,9 @@ PyTypeObject _Map_CollisionNode_Type;
 PyTypeObject _MapKeys_Type;
 PyTypeObject _MapValues_Type;
 PyTypeObject _MapItems_Type;
+PyTypeObject _MapKeysIter_Type;
+PyTypeObject _MapValuesIter_Type;
+PyTypeObject _MapItemsIter_Type;
 
 
 #endif

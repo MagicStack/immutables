@@ -391,20 +391,43 @@ class CollisionNode:
             buf.append('{}{!r}: {!r}'.format(pad, key, val))
 
 
-class GenWrapper:
+class MapKeys:
 
-    def __init__(self, count, gen):
-        self.__count = count
-        self.__gen = gen
+    def __init__(self, c, m):
+        self.__count = c
+        self.__root = m
 
     def __len__(self):
         return self.__count
 
     def __iter__(self):
-        return self
+        return iter(self.__root.keys())
 
-    def __next__(self):
-        return next(self.__gen)
+
+class MapValues:
+
+    def __init__(self, c, m):
+        self.__count = c
+        self.__root = m
+
+    def __len__(self):
+        return self.__count
+
+    def __iter__(self):
+        return iter(self.__root.values())
+
+
+class MapItems:
+
+    def __init__(self, c, m):
+        self.__count = c
+        self.__root = m
+
+    def __len__(self):
+        return self.__count
+
+    def __iter__(self):
+        return iter(self.__root.items())
 
 
 class Map:
@@ -544,13 +567,13 @@ class Map:
         yield from self.__root.keys()
 
     def keys(self):
-        return GenWrapper(self.__count, self.__root.keys())
+        return MapKeys(self.__count, self.__root)
 
     def values(self):
-        return GenWrapper(self.__count, self.__root.values())
+        return MapValues(self.__count, self.__root)
 
     def items(self):
-        return GenWrapper(self.__count, self.__root.items())
+        return MapItems(self.__count, self.__root)
 
     def __hash__(self):
         if self.__hash != -1:
