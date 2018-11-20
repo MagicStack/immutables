@@ -1,5 +1,6 @@
 import collections.abc
 import gc
+import pickle
 import random
 import unittest
 import weakref
@@ -1147,6 +1148,15 @@ class BaseMapTest:
 
             self.assertEqual(dict(h.items()), d)
             self.assertEqual(len(h), len(d))
+
+    def test_map_pickle(self):
+        h = self.Map(a=1, b=2)
+        for proto in range(pickle.HIGHEST_PROTOCOL):
+            p = pickle.dumps(h, proto)
+            uh = pickle.loads(p)
+
+            self.assertTrue(isinstance(uh, self.Map))
+            self.assertEqual(h, uh)
 
 
 class PyMapTest(BaseMapTest, unittest.TestCase):

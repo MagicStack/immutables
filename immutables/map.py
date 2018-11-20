@@ -450,6 +450,9 @@ class Map:
         m.__hash = -1
         return m
 
+    def __reduce__(self):
+        return (type(self), (dict(self.items()),))
+
     def __len__(self):
         return self.__count
 
