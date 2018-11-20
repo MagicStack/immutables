@@ -509,13 +509,13 @@ class Map:
                 tup = tuple(tup)
             except TypeError:
                 raise TypeError(
-                    f'cannot convert map update '
-                    f'sequence element #{i} to a sequence') from None
+                    'cannot convert map update '
+                    'sequence element #{} to a sequence'.format(i)) from None
             key, val, *r = tup
             if r:
                 raise ValueError(
-                    f'map update sequence element #{i} has length '
-                    f'{len(r) + 2}; 2 is required')
+                    'map update sequence element #{} has length '
+                    '{}; 2 is required'.format(i, len(r) + 2))
 
             root, added = root.assoc(0, map_hash(key), key, val, mutid)
             if added:
@@ -642,7 +642,7 @@ class MapMutation:
 
     def __delitem__(self, key):
         if self.__mutid == 0:
-            raise ValueError(f'mutation {self!r} has been finalized')
+            raise ValueError('mutation {!r} has been finalized'.format(self))
 
         res, new_root = self.__root.without(
             0, map_hash(key), key, self.__mutid)
@@ -657,7 +657,7 @@ class MapMutation:
 
     def __setitem__(self, key, val):
         if self.__mutid == 0:
-            raise ValueError(f'mutation {self!r} has been finalized')
+            raise ValueError('mutation {!r} has been finalized'.format(self))
 
         self.__root, added = self.__root.assoc(
             0, map_hash(key), key, val, self.__mutid)
@@ -667,7 +667,7 @@ class MapMutation:
 
     def pop(self, key, *args):
         if self.__mutid == 0:
-            raise ValueError(f'mutation {self!r} has been finalized')
+            raise ValueError('mutation {!r} has been finalized'.format(self))
 
         if len(args) > 1:
             raise TypeError(
@@ -723,7 +723,7 @@ class MapMutation:
         return self.__count
 
     def __hash__(self):
-        raise TypeError(f'unhashable type: {type(self).__name__}')
+        raise TypeError('unhashable type: {}'.format(type(self).__name__))
 
     def __eq__(self, other):
         if not isinstance(other, MapMutation):
