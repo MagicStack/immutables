@@ -37,22 +37,71 @@ Installation
     $ pip install immutables
 
 
-immutables.Map
---------------
+API
+---
 
-The ``Map`` object implements ``collections.abc.Mapping`` ABC
+``immutables.Map`` is an unordered immutable mapping.  ``Map`` objects
+are hashable, comparable, and pickleable.
+
+The ``Map`` object implements the ``collections.abc.Mapping`` ABC
 so working with it is very similar to working with Python dicts.
 
-The only exception are its ``Map.set()`` and ``Map.delete()`` methods
-which return a new instance of ``Map``:
+    import immutables
 
-.. code-block:: python
+    map = immutables.Map(a=1, b=2)
 
-    m1 = Map()  # an empty Map
-    m2 = m1.set('key1', 'val1')  # m2 has a 'key1' key, m1 is still empty
+    print(map['a'])
+    # will print '1'
 
-    m3 = m2.set('key2', 'val2')
-    m3 = m3.delete('key1')  # m3 has only a 'key2' key
+    print(map.get('z', 100))
+    # will print '100'
+
+    print('z' in map)
+    # will print 'False'
+
+Since Maps are immutable, there is a special API for mutations that
+allow apply changes to the Map object and create new (derived) Maps::
+
+    map2 = map.set('a', 10)
+    print(map, map2)
+    # will print:
+    #   <immutables.Map({'a': 1, 'b': 2})>
+    #   <immutables.Map({'a': 10, 'b': 2})>
+
+    map3 = map2.delete('b')
+    print(map, map2, map3)
+    # will print:
+    #   <immutables.Map({'a': 1, 'b': 2})>
+    #   <immutables.Map({'a': 10, 'b': 2})>
+    #   <immutables.Map({'a': 10})>
+
+Maps also implement APIs for bulk updates: ``MapMutation`` objects::
+
+    map_mutation = map.mutate()
+    map_mutation['a'] = 100
+    del map_mutation['b']
+    map_mutation.set('y', 'y')
+
+    map2 = map_mutation.finalize()
+
+    print(map, map2)
+    # will print:
+    #   <immutables.Map({'a': 1, 'b': 2})>
+    #   <immutables.Map({'a': 100, 'y': 'y'})>
+
+``MapMutation`` objects are context managers.  Here's the above example
+rewritten in a more idiomatic way::
+
+    with map.mutate() as mm:
+        mm['a'] = 100
+        del mm['b']
+        mm.set('y', 'y')
+        map2 = mm.finalize()
+
+    print(map, map2)
+    # will print:
+    #   <immutables.Map({'a': 1, 'b': 2})>
+    #   <immutables.Map({'a': 100, 'y': 'y'})>
 
 
 Further development
@@ -60,10 +109,6 @@ Further development
 
 * An immutable version of Python ``set`` type with efficient
   ``add()`` and ``discard()`` operations.
-
-* Add support for efficient ``Map.update()`` operation, allow to
-  pass a set of key/values to ``Map()``, and add support for
-  pickling.
 
 
 License
