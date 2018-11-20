@@ -642,7 +642,7 @@ class MapMutation:
 
     def __delitem__(self, key):
         if self.__mutid == 0:
-            raise ValueError('mutation {!r} has been finalized'.format(self))
+            raise ValueError('mutation {!r} has been finished'.format(self))
 
         res, new_root = self.__root.without(
             0, map_hash(key), key, self.__mutid)
@@ -657,7 +657,7 @@ class MapMutation:
 
     def __setitem__(self, key, val):
         if self.__mutid == 0:
-            raise ValueError('mutation {!r} has been finalized'.format(self))
+            raise ValueError('mutation {!r} has been finished'.format(self))
 
         self.__root, added = self.__root.assoc(
             0, map_hash(key), key, val, self.__mutid)
@@ -667,7 +667,7 @@ class MapMutation:
 
     def pop(self, key, *args):
         if self.__mutid == 0:
-            raise ValueError('mutation {!r} has been finalized'.format(self))
+            raise ValueError('mutation {!r} has been finished'.format(self))
 
         if len(args) > 1:
             raise TypeError(

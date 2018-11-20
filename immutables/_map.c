@@ -3723,7 +3723,7 @@ mapmut_check_finalized(MapMutationObject *o)
     if (o->m_mutid == 0) {
         PyErr_Format(
             PyExc_ValueError,
-            "mutation %R has been finalized",
+            "mutation %R has been finished",
             o, NULL);
         return -1;
     }
