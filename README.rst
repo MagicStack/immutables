@@ -44,7 +44,9 @@ API
 are hashable, comparable, and pickleable.
 
 The ``Map`` object implements the ``collections.abc.Mapping`` ABC
-so working with it is very similar to working with Python dicts.
+so working with it is very similar to working with Python dicts:
+
+.. code-block:: python
 
     import immutables
 
@@ -60,7 +62,9 @@ so working with it is very similar to working with Python dicts.
     # will print 'False'
 
 Since Maps are immutable, there is a special API for mutations that
-allow apply changes to the Map object and create new (derived) Maps::
+allow apply changes to the Map object and create new (derived) Maps:
+
+.. code-block:: python
 
     map2 = map.set('a', 10)
     print(map, map2)
@@ -75,7 +79,9 @@ allow apply changes to the Map object and create new (derived) Maps::
     #   <immutables.Map({'a': 10, 'b': 2})>
     #   <immutables.Map({'a': 10})>
 
-Maps also implement APIs for bulk updates: ``MapMutation`` objects::
+Maps also implement APIs for bulk updates: ``MapMutation`` objects:
+
+.. code-block:: python
 
     map_mutation = map.mutate()
     map_mutation['a'] = 100
@@ -90,7 +96,9 @@ Maps also implement APIs for bulk updates: ``MapMutation`` objects::
     #   <immutables.Map({'a': 100, 'y': 'y'})>
 
 ``MapMutation`` objects are context managers.  Here's the above example
-rewritten in a more idiomatic way::
+rewritten in a more idiomatic way:
+
+.. code-block:: python
 
     with map.mutate() as mm:
         mm['a'] = 100
