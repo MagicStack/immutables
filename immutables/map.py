@@ -637,7 +637,7 @@ class MapMutation:
         return self
 
     def __exit__(self, *exc):
-        self.finalize()
+        self.finish()
         return False
 
     def __delitem__(self, key):
@@ -707,7 +707,7 @@ class MapMutation:
         else:
             return True
 
-    def finalize(self):
+    def finish(self):
         self.__mutid = 0
         return Map._new(self.__count, self.__root)
 

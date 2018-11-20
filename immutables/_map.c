@@ -3969,7 +3969,7 @@ static PyMethodDef MapMutation_methods[] = {
     {"set", (PyCFunction)mapmut_py_set, METH_VARARGS, NULL},
     {"get", (PyCFunction)map_py_get, METH_VARARGS, NULL},
     {"pop", (PyCFunction)mapmut_py_pop, METH_VARARGS, NULL},
-    {"finalize", (PyCFunction)mapmut_py_finalize, METH_NOARGS, NULL},
+    {"finish", (PyCFunction)mapmut_py_finalize, METH_NOARGS, NULL},
     {"__enter__", (PyCFunction)mapmut_py_enter, METH_NOARGS, NULL},
     {"__exit__", (PyCFunction)mapmut_py_exit, METH_VARARGS, NULL},
     {NULL, NULL}

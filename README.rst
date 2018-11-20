@@ -82,7 +82,7 @@ Maps also implement APIs for bulk updates: ``MapMutation`` objects::
     del map_mutation['b']
     map_mutation.set('y', 'y')
 
-    map2 = map_mutation.finalize()
+    map2 = map_mutation.finish()
 
     print(map, map2)
     # will print:
@@ -96,7 +96,7 @@ rewritten in a more idiomatic way::
         mm['a'] = 100
         del mm['b']
         mm.set('y', 'y')
-        map2 = mm.finalize()
+        map2 = mm.finish()
 
     print(map, map2)
     # will print:
