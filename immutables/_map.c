@@ -3306,6 +3306,42 @@ map_py_hash(MapObject *self)
     return self->h_hash;
 }
 
+static PyObject *
+map_reduce(MapObject *self)
+{
+    MapIteratorState iter;
+    map_iter_t iter_res;
+
+    PyObject *dict = PyDict_New();
+    if (dict == NULL) {
+        return NULL;
+    }
+
+    map_iterator_init(&iter, self->h_root);
+    do {
+        PyObject *key;
+        PyObject *val;
+
+        iter_res = map_iterator_next(&iter, &key, &val);
+        if (iter_res == I_ITEM) {
+            if (PyDict_SetItem(dict, key, val) < 0) {
+                Py_DECREF(dict);
+                return NULL;
+            }
+        }
+    } while (iter_res != I_END);
+
+    PyObject *args = PyTuple_Pack(1, dict);
+    Py_DECREF(dict);
+    if (args == NULL) {
+        return NULL;
+    }
+
+    PyObject *tup = PyTuple_Pack(2, Py_TYPE(self), args);
+    Py_DECREF(args);
+    return tup;
+}
+
 
 static PyMethodDef Map_methods[] = {
     {"set", (PyCFunction)map_py_set, METH_VARARGS, NULL},
@@ -3316,6 +3352,7 @@ static PyMethodDef Map_methods[] = {
     {"keys", (PyCFunction)map_py_keys, METH_NOARGS, NULL},
     {"values", (PyCFunction)map_py_values, METH_NOARGS, NULL},
     {"update", (PyCFunction)map_py_update, METH_VARARGS | METH_KEYWORDS, NULL},
+    {"__reduce__", (PyCFunction)map_reduce, METH_NOARGS, NULL},
     {"__dump__", (PyCFunction)map_py_dump, METH_NOARGS, NULL},
     {NULL, NULL}
 };
