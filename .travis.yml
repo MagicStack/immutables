@@ -3,7 +3,7 @@ language: generic
 env:
     global:
         - PYMODULE=immutables
-        - RELEASE_PYTHON_VERSIONS="3.5 3.6"
+        - RELEASE_PYTHON_VERSIONS="3.5 3.6 3.7"
 
         - S3_UPLOAD_USERNAME=oss-ci-bot
         - S3_UPLOAD_BUCKET=magicstack-oss-releases
@@ -27,6 +27,13 @@ matrix:
           sudo: false
           language: python
           python: "3.5"
+          env: BUILD=tests
+
+        - os: linux
+          dist: xenial
+          sudo: true
+          language: python
+          python: "3.7"
           env: BUILD=tests
 
         - os: linux
