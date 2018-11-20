@@ -37,7 +37,7 @@ Now let's partition this bit representation of the hash into blocks of
     0b00_00000_10010_11101_00101_01011_10000 = 19830128
           (6)   (5)   (4)   (3)   (2)   (1)
 
-Each block of 5 bits represents a number betwen 0 and 31.  So if we have
+Each block of 5 bits represents a number between 0 and 31.  So if we have
 a tree that consists of nodes, each of which is an array of 32 pointers,
 those 5-bit blocks will encode a position on a single tree level.
 
@@ -885,7 +885,7 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
                pairs.
 
                Small map objects (<30 keys) usually don't have any
-               Array nodes at all.  Betwen ~30 and ~400 keys map
+               Array nodes at all.  Between ~30 and ~400 keys map
                objects usually have one Array node, and usually it's
                a root node.
             */
@@ -2460,7 +2460,7 @@ map_without(MapObject *o, PyObject *key)
         return NULL;
     }
 
-    MapNode *new_root;
+    MapNode *new_root = NULL;
 
     map_without_t res = map_node_without(
         (MapNode *)(o->h_root),
@@ -3715,6 +3715,88 @@ map_update(uint64_t mutid, MapObject *o, PyObject *src)
     return new;
 }
 
+static int
+mapmut_check_finalized(MapMutationObject *o)
+{
+    if (o->m_mutid == 0) {
+        PyErr_Format(
+            PyExc_ValueError,
+            "mutation %R has been finalized",
+            o, NULL);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+mapmut_delete(MapMutationObject *o, PyObject *key, int32_t key_hash)
+{
+    MapNode *new_root = NULL;
+
+    assert(key_hash != -1);
+    map_without_t res = map_node_without(
+        (MapNode *)(o->m_root),
+        0, key_hash, key,
+        &new_root,
+        o->m_mutid);
+
+    switch (res) {
+        case W_ERROR:
+            return -1;
+
+        case W_EMPTY:
+            new_root = map_node_bitmap_new(0, o->m_mutid);
+            if (new_root == NULL) {
+                return -1;
+            }
+            Py_SETREF(o->m_root, new_root);
+            o->m_count = 0;
+            return 0;
+
+        case W_NOT_FOUND:
+            PyErr_SetObject(PyExc_KeyError, key);
+            return -1;
+
+        case W_NEWNODE: {
+            assert(new_root != NULL);
+            Py_SETREF(o->m_root, new_root);
+            o->m_count--;
+            return 0;
+        }
+
+        default:
+            abort();
+    }
+}
+
+static int
+mapmut_set(MapMutationObject *o, PyObject *key, int32_t key_hash,
+           PyObject *val)
+{
+    int added_leaf = 0;
+
+    assert(key_hash != -1);
+    MapNode *new_root = map_node_assoc(
+        (MapNode *)(o->m_root),
+        0, key_hash, key, val, &added_leaf,
+        o->m_mutid);
+    if (new_root == NULL) {
+        return -1;
+    }
+
+    if (added_leaf) {
+        o->m_count++;
+    }
+
+    if (new_root == o->m_root) {
+        Py_DECREF(new_root);
+        return 0;
+    }
+
+    Py_SETREF(o->m_root, new_root);
+    return 0;
+}
 
 static PyObject *
 mapmut_py_set(MapMutationObject *o, PyObject *args)
@@ -3726,83 +3808,21 @@ mapmut_py_set(MapMutationObject *o, PyObject *args)
         return NULL;
     }
 
-    int32_t key_hash;
-    int added_leaf = 0;
-
-    key_hash = map_hash(key);
-    if (key_hash == -1) {
+    if (mapmut_check_finalized(o)) {
         return NULL;
     }
 
-    MapNode *new_root = map_node_assoc(
-        (MapNode *)(o->m_root),
-        0, key_hash, key, val, &added_leaf,
-        o->m_mutid);
-    if (new_root == NULL) {
-        return NULL;
-    }
-
-    if (added_leaf) {
-        o->m_count++;
-    }
-
-    if (new_root == o->m_root) {
-        Py_DECREF(new_root);
-        goto done;
-    }
-
-    Py_SETREF(o->m_root, new_root);
-
-done:
-    Py_RETURN_NONE;
-}
-
-
-static PyObject *
-mapmut_py_delete(MapMutationObject *o, PyObject *key)
-{
     int32_t key_hash = map_hash(key);
     if (key_hash == -1) {
         return NULL;
     }
 
-    MapNode *new_root;
-
-    map_without_t res = map_node_without(
-        (MapNode *)(o->m_root),
-        0, key_hash, key,
-        &new_root,
-        o->m_mutid);
-
-    switch (res) {
-        case W_ERROR:
-            return NULL;
-        case W_EMPTY:
-            new_root = map_node_bitmap_new(0, o->m_mutid);
-            if (new_root == NULL) {
-                return NULL;
-            }
-            Py_SETREF(o->m_root, new_root);
-            o->m_count = 0;
-            goto done;
-
-        case W_NOT_FOUND:
-            PyErr_SetObject(PyExc_KeyError, key);
-            return NULL;
-        case W_NEWNODE: {
-            assert(new_root != NULL);
-            Py_SETREF(o->m_root, new_root);
-            o->m_count--;
-            goto done;
-        }
-        default:
-            abort();
+    if (mapmut_set(o, key, key_hash, val)) {
+        return NULL;
     }
 
-done:
     Py_RETURN_NONE;
 }
-
 
 static PyObject *
 mapmut_tp_richcompare(PyObject *v, PyObject *w, int op)
@@ -3848,11 +3868,88 @@ mapmut_py_finalize(MapMutationObject *self, PyObject *args)
     return (PyObject *)o;
 }
 
+static int
+mapmut_tp_ass_sub(MapMutationObject *self, PyObject *key, PyObject *val)
+{
+    if (mapmut_check_finalized(self)) {
+        return -1;
+    }
+
+    int32_t key_hash = map_hash(key);
+    if (key_hash == -1) {
+        return -1;
+    }
+
+    if (val == NULL) {
+        return mapmut_delete(self, key, key_hash);
+    }
+    else {
+        return mapmut_set(self, key, key_hash, val);
+    }
+}
+
+static PyObject *
+mapmut_py_pop(MapMutationObject *self, PyObject *args)
+{
+    PyObject *key, *deflt = NULL, *val = NULL;
+
+    if(!PyArg_UnpackTuple(args, "pop", 1, 2, &key, &deflt)) {
+        return NULL;
+    }
+
+    if (mapmut_check_finalized(self)) {
+        return NULL;
+    }
+
+    if (!self->m_count) {
+        goto not_found;
+    }
+
+    int32_t key_hash = map_hash(key);
+    if (key_hash == -1) {
+        return NULL;
+    }
+
+    map_find_t find_res = map_node_find(self->m_root, 0, key_hash, key, &val);
+
+    switch (find_res) {
+        case F_ERROR:
+            return NULL;
+
+        case F_NOT_FOUND:
+            goto not_found;
+
+        case F_FOUND:
+            break;
+
+        default:
+            abort();
+    }
+
+    Py_INCREF(val);
+
+    if (mapmut_delete(self, key, key_hash)) {
+        Py_DECREF(val);
+        return NULL;
+    }
+
+    return val;
+
+not_found:
+    if (deflt) {
+        Py_INCREF(deflt);
+        return deflt;
+    }
+
+    PyErr_SetObject(PyExc_KeyError, key);
+    return NULL;
+}
+
 
 static PyMethodDef MapMutation_methods[] = {
     {"set", (PyCFunction)mapmut_py_set, METH_VARARGS, NULL},
     {"get", (PyCFunction)map_py_get, METH_VARARGS, NULL},
-    {"delete", (PyCFunction)mapmut_py_delete, METH_O, NULL},
+    {"pop", (PyCFunction)mapmut_py_pop, METH_VARARGS, NULL},
     {"finalize", (PyCFunction)mapmut_py_finalize, METH_NOARGS, NULL},
     {NULL, NULL}
 };
@@ -3871,8 +3968,9 @@ static PySequenceMethods MapMutation_as_sequence = {
 };
 
 static PyMappingMethods MapMutation_as_mapping = {
-    (lenfunc)map_tp_len,             /* mp_length */
-    (binaryfunc)map_tp_subscript,    /* mp_subscript */
+    (lenfunc)map_tp_len,              /* mp_length */
+    (binaryfunc)map_tp_subscript,     /* mp_subscript */
+    (objobjargproc)mapmut_tp_ass_sub, /* mp_subscript */
 };
 
 PyTypeObject _MapMutation_Type = {

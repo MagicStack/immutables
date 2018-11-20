@@ -44,6 +44,7 @@ def map_bitindex(bitmap, bit):
 
 
 W_EMPTY, W_NEWNODE, W_NOT_FOUND = range(3)
+void = object()
 
 
 class BitmapNode:
@@ -630,16 +631,9 @@ class MapMutation:
         self.__mutid = _mut_id()
 
     def set(self, key, val):
-        if self.__mutid == 0:
-            raise ValueError(f'mutation {self!r} has been finalized')
+        self[key] = val
 
-        self.__root, added = self.__root.assoc(
-            0, map_hash(key), key, val, self.__mutid)
-
-        if added:
-            self.__count += 1
-
-    def delete(self, key):
+    def __delitem__(self, key):
         if self.__mutid == 0:
             raise ValueError(f'mutation {self!r} has been finalized')
 
@@ -653,6 +647,41 @@ class MapMutation:
         else:
             self.__root = new_root
             self.__count -= 1
+
+    def __setitem__(self, key, val):
+        if self.__mutid == 0:
+            raise ValueError(f'mutation {self!r} has been finalized')
+
+        self.__root, added = self.__root.assoc(
+            0, map_hash(key), key, val, self.__mutid)
+
+        if added:
+            self.__count += 1
+
+    def pop(self, key, *args):
+        if self.__mutid == 0:
+            raise ValueError(f'mutation {self!r} has been finalized')
+
+        if len(args) > 1:
+            raise TypeError(
+                'pop() accepts 1 to 2 positional arguments, '
+                'got {}'.format(len(args) + 1))
+        elif len(args) == 1:
+            default = args[0]
+        else:
+            default = void
+
+        val = self.get(key, default)
+
+        try:
+            del self[key]
+        except KeyError:
+            if val is void:
+                raise
+            return val
+        else:
+            assert val is not void
+            return val
 
     def get(self, key, default=None):
         try:

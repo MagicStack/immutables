@@ -992,7 +992,7 @@ class BaseMapTest:
         hm2.set('a', 10)
         self.assertEqual(hm1, hm2)
 
-        hm2.delete('a')
+        self.assertEqual(hm2.pop('a'), 10)
         self.assertNotEqual(hm1, hm2)
 
     def test_map_mut_5(self):
@@ -1099,6 +1099,81 @@ class BaseMapTest:
             with self.assertRaises(HashingError):
                 self.Map(src)
 
+    def test_map_mut_10(self):
+        key1 = HashKey(123, 'aaa')
+
+        m = self.Map({key1: 123})
+
+        mm = m.mutate()
+        with HashKeyCrasher(error_on_hash=True):
+            with self.assertRaises(HashingError):
+                del mm[key1]
+
+        mm = m.mutate()
+        with HashKeyCrasher(error_on_hash=True):
+            with self.assertRaises(HashingError):
+                mm.pop(key1, None)
+
+        mm = m.mutate()
+        with HashKeyCrasher(error_on_hash=True):
+            with self.assertRaises(HashingError):
+                mm.set(key1, 123)
+
+    def test_map_mut_11(self):
+        m = self.Map({'a': 1, 'b': 2})
+
+        mm = m.mutate()
+        self.assertEqual(mm.pop('a', 1), 1)
+        self.assertEqual(mm.finalize(), self.Map({'b': 2}))
+
+        mm = m.mutate()
+        self.assertEqual(mm.pop('b', 1), 2)
+        self.assertEqual(mm.finalize(), self.Map({'a': 1}))
+
+        mm = m.mutate()
+        self.assertEqual(mm.pop('b', 1), 2)
+        del mm['a']
+        self.assertEqual(mm.finalize(), self.Map())
+
+    def test_map_mut_12(self):
+        m = self.Map({'a': 1, 'b': 2})
+
+        mm = m.mutate()
+        mm.finalize()
+
+        with self.assertRaisesRegex(ValueError, 'has been finalized'):
+            mm.pop('a')
+
+        with self.assertRaisesRegex(ValueError, 'has been finalized'):
+            del mm['a']
+
+        with self.assertRaisesRegex(ValueError, 'has been finalized'):
+            mm.set('a', 'b')
+
+        with self.assertRaisesRegex(ValueError, 'has been finalized'):
+            mm['a'] = 'b'
+
+    def test_map_mut_13(self):
+        key1 = HashKey(123, 'aaa')
+        key2 = HashKey(123, 'aaa')
+
+        m = self.Map({key1: 123})
+
+        mm = m.mutate()
+        with HashKeyCrasher(error_on_eq=True):
+            with self.assertRaises(EqError):
+                del mm[key2]
+
+        mm = m.mutate()
+        with HashKeyCrasher(error_on_eq=True):
+            with self.assertRaises(EqError):
+                mm.pop(key2, None)
+
+        mm = m.mutate()
+        with HashKeyCrasher(error_on_eq=True):
+            with self.assertRaises(EqError):
+                mm.set(key2, 123)
+
     def test_map_mut_stress(self):
         COLLECTION_SIZE = 7000
         TEST_ITERS_EVERY = 647
@@ -1138,7 +1213,7 @@ class BaseMapTest:
                         break
 
                     del d[key]
-                    hm.delete(key)
+                    del hm[key]
 
                     self.assertEqual(len(hm), len(d))
 
