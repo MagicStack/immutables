@@ -1141,16 +1141,16 @@ class BaseMapTest:
         mm = m.mutate()
         mm.finish()
 
-        with self.assertRaisesRegex(ValueError, 'has been finalized'):
+        with self.assertRaisesRegex(ValueError, 'has been finished'):
             mm.pop('a')
 
-        with self.assertRaisesRegex(ValueError, 'has been finalized'):
+        with self.assertRaisesRegex(ValueError, 'has been finished'):
             del mm['a']
 
-        with self.assertRaisesRegex(ValueError, 'has been finalized'):
+        with self.assertRaisesRegex(ValueError, 'has been finished'):
             mm.set('a', 'b')
 
-        with self.assertRaisesRegex(ValueError, 'has been finalized'):
+        with self.assertRaisesRegex(ValueError, 'has been finished'):
             mm['a'] = 'b'
 
     def test_map_mut_13(self):
