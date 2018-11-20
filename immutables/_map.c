@@ -810,15 +810,17 @@ map_node_bitmap_assoc(MapNode_Bitmap *self,
                 return (MapNode *)self;
             }
 
-            /* We're setting a new value for the key we had before.
-               Make a new bitmap node with a replaced value, and return it. */
+            /* We're setting a new value for the key we had before. */
             if (mutid != 0 && self->b_mutid == mutid) {
+                /* We've been mutating this node before: update inplace. */
                 Py_INCREF(val);
                 Py_SETREF(self->b_array[val_idx], val);
                 Py_INCREF(self);
                 return (MapNode *)self;
             }
             else {
+                /* Make a new bitmap node with a replaced value,
+                   and return it. */
                 MapNode_Bitmap *ret = map_node_bitmap_clone(self, mutid);
                 if (ret == NULL) {
                     return NULL;
