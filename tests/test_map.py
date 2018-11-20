@@ -1254,6 +1254,9 @@ class BaseMapTest:
             self.assertTrue(isinstance(uh, self.Map))
             self.assertEqual(h, uh)
 
+        with self.assertRaisesRegex(TypeError, "can't pickle"):
+            pickle.dumps(h.mutate())
+
 
 class PyMapTest(BaseMapTest, unittest.TestCase):
 
