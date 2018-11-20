@@ -312,7 +312,6 @@ typedef struct {
 static volatile uint64_t mutid_counter = 1;
 
 static MapNode_Bitmap *_empty_bitmap_node;
-static MapObject *_empty_map;
 
 
 /* Create a new HAMT immutable mapping. */
@@ -379,6 +378,19 @@ map_node_collision_new(int32_t hash, Py_ssize_t size, uint64_t mutid);
 
 static inline Py_ssize_t
 map_node_collision_count(MapNode_Collision *node);
+
+static int
+map_node_update(uint64_t mutid,
+                PyObject *seq,
+                MapNode *root, Py_ssize_t count,
+                MapNode **new_root, Py_ssize_t *new_count);
+
+
+static int
+map_update_inplace(uint64_t mutid, MapObject *o, PyObject *src);
+
+static MapObject *
+map_update(uint64_t mutid, MapObject *o, PyObject *src);
 
 
 #ifdef NDEBUG
@@ -2570,13 +2582,6 @@ map_alloc(void)
 static MapObject *
 map_new(void)
 {
-    if (_empty_map != NULL) {
-        /* HAMT is an immutable object so we can easily cache an
-           empty instance. */
-        Py_INCREF(_empty_map);
-        return _empty_map;
-    }
-
     MapObject *o = map_alloc();
     if (o == NULL) {
         return NULL;
@@ -2586,11 +2591,6 @@ map_new(void)
     if (o->h_root == NULL) {
         Py_DECREF(o);
         return NULL;
-    }
-
-    if (_empty_map == NULL) {
-        Py_INCREF(o);
-        _empty_map = o;
     }
 
     return o;
@@ -2787,16 +2787,44 @@ map_dump(MapObject *self);
 static PyObject *
 map_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwds)
 {
-    if (kwds != NULL && PyDict_Size(kwds) != 0) {
-        PyErr_SetString(PyExc_TypeError, "__new__ takes no keyword arguments");
-        return NULL;
-    }
-    if (args != NULL && PyTuple_Size(args) != 0) {
-        PyErr_SetString(PyExc_TypeError, "__new__ takes no positional arguments");
-        return NULL;
-    }
     return (PyObject*)map_new();
 }
+
+
+static int
+map_tp_init(MapObject *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *arg = NULL;
+    uint64_t mutid = 0;
+
+    if (!PyArg_UnpackTuple(args, "immutables.Map", 0, 1, &arg)) {
+        return -1;
+    }
+
+    if (arg != NULL) {
+        mutid = mutid_counter++;
+        if (map_update_inplace(mutid, self, arg)) {
+            return -1;
+        }
+    }
+
+    if (kwds != NULL) {
+        if (!PyArg_ValidateKeywordArguments(kwds)) {
+            return -1;
+        }
+
+        if (!mutid) {
+            mutid = mutid_counter++;
+        }
+
+        if (map_update_inplace(mutid, self, kwds)) {
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
 
 static int
 map_tp_clear(BaseMapObject *self)
@@ -2964,6 +2992,50 @@ map_py_mutate(MapObject *self, PyObject *args)
 
     PyObject_GC_Track(o);
     return (PyObject *)o;
+}
+
+static PyObject *
+map_py_update(MapObject *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *arg = NULL;
+    MapObject *new = NULL;
+    uint64_t mutid = 0;
+
+    if (!PyArg_UnpackTuple(args, "update", 0, 1, &arg)) {
+        return NULL;
+    }
+
+    if (arg != NULL) {
+        mutid = mutid_counter++;
+        new = map_update(mutid, self, arg);
+        if (new == NULL) {
+            return NULL;
+        }
+    }
+    else {
+        Py_INCREF(self);
+        new = self;
+    }
+
+    if (kwds != NULL) {
+        if (!PyArg_ValidateKeywordArguments(kwds)) {
+            Py_DECREF(new);
+            return NULL;
+        }
+
+        if (!mutid) {
+            mutid = mutid_counter++;
+        }
+
+        MapObject *new2 = map_update(mutid, new, kwds);
+        Py_DECREF(new);
+        if (new2 == NULL) {
+            return NULL;
+        }
+        new = new2;
+    }
+
+    return (PyObject *)new;
 }
 
 static PyObject *
@@ -3155,6 +3227,7 @@ static PyMethodDef Map_methods[] = {
     {"items", (PyCFunction)map_py_items, METH_NOARGS, NULL},
     {"keys", (PyCFunction)map_py_keys, METH_NOARGS, NULL},
     {"values", (PyCFunction)map_py_values, METH_NOARGS, NULL},
+    {"update", (PyCFunction)map_py_update, METH_VARARGS | METH_KEYWORDS, NULL},
     {"__dump__", (PyCFunction)map_py_dump, METH_NOARGS, NULL},
     {NULL, NULL}
 };
@@ -3192,6 +3265,7 @@ PyTypeObject _Map_Type = {
     .tp_traverse = (traverseproc)map_tp_traverse,
     .tp_clear = (inquiry)map_tp_clear,
     .tp_new = map_tp_new,
+    .tp_init = (initproc)map_tp_init,
     .tp_weaklistoffset = offsetof(MapObject, h_weakreflist),
     .tp_hash = (hashfunc)map_py_hash,
     .tp_repr = (reprfunc)map_py_repr,
@@ -3199,6 +3273,322 @@ PyTypeObject _Map_Type = {
 
 
 /////////////////////////////////// MapMutation
+
+
+static int
+map_node_update_from_map(uint64_t mutid,
+                         MapObject *map,
+                         MapNode *root, Py_ssize_t count,
+                         MapNode **new_root, Py_ssize_t *new_count)
+{
+    assert(Map_Check(map));
+
+    MapIteratorState iter;
+    map_iter_t iter_res;
+
+    MapNode *last_root;
+    Py_ssize_t last_count;
+
+    Py_INCREF(root);
+    last_root = root;
+    last_count = count;
+
+    map_iterator_init(&iter, map->h_root);
+    do {
+        PyObject *key;
+        PyObject *val;
+        int32_t key_hash;
+        int added_leaf;
+
+        iter_res = map_iterator_next(&iter, &key, &val);
+        if (iter_res == I_ITEM) {
+            key_hash = map_hash(key);
+            if (key_hash == -1) {
+                goto err;
+            }
+
+            MapNode *iter_root = map_node_assoc(
+                last_root,
+                0, key_hash, key, val, &added_leaf,
+                mutid);
+
+            if (iter_root == NULL) {
+                goto err;
+            }
+
+            if (added_leaf) {
+                last_count++;
+            }
+
+            Py_SETREF(last_root, iter_root);
+        }
+    } while (iter_res != I_END);
+
+    *new_root = last_root;
+    *new_count = last_count;
+
+    return 0;
+
+err:
+    Py_DECREF(last_root);
+    return -1;
+}
+
+
+static int
+map_node_update_from_dict(uint64_t mutid,
+                          PyObject *dct,
+                          MapNode *root, Py_ssize_t count,
+                          MapNode **new_root, Py_ssize_t *new_count)
+{
+    assert(PyDict_Check(dct));
+
+    PyObject *it = PyObject_GetIter(dct);
+    if (it == NULL) {
+        return -1;
+    }
+
+    MapNode *last_root;
+    Py_ssize_t last_count;
+
+    Py_INCREF(root);
+    last_root = root;
+    last_count = count;
+
+    PyObject *key;
+
+    while ((key = PyIter_Next(it))) {
+        PyObject *val;
+        int added_leaf;
+        int32_t key_hash;
+
+        key_hash = map_hash(key);
+        if (key_hash == -1) {
+            Py_DECREF(key);
+            goto err;
+        }
+
+        val = PyDict_GetItemWithError(dct, key);
+        if (val == NULL) {
+            Py_DECREF(key);
+            goto err;
+        }
+
+        MapNode *iter_root = map_node_assoc(
+            last_root,
+            0, key_hash, key, val, &added_leaf,
+            mutid);
+
+        Py_DECREF(key);
+
+        if (iter_root == NULL) {
+            goto err;
+        }
+
+        if (added_leaf) {
+            last_count++;
+        }
+
+        Py_SETREF(last_root, iter_root);
+    }
+
+    if (key == NULL && PyErr_Occurred()) {
+        goto err;
+    }
+
+    Py_DECREF(it);
+
+    *new_root = last_root;
+    *new_count = last_count;
+
+    return 0;
+
+err:
+    Py_DECREF(it);
+    Py_DECREF(last_root);
+    return -1;
+}
+
+
+static int
+map_node_update_from_seq(uint64_t mutid,
+                         PyObject *seq,
+                         MapNode *root, Py_ssize_t count,
+                         MapNode **new_root, Py_ssize_t *new_count)
+{
+    PyObject *it;
+    Py_ssize_t i;
+    PyObject *item = NULL;
+    PyObject *fast = NULL;
+
+    MapNode *last_root;
+    Py_ssize_t last_count;
+
+    it = PyObject_GetIter(seq);
+    if (it == NULL) {
+        return -1;
+    }
+
+    Py_INCREF(root);
+    last_root = root;
+    last_count = count;
+
+    for (i = 0; ; i++) {
+        PyObject *key, *val;
+        Py_ssize_t n;
+        int32_t key_hash;
+        int added_leaf;
+
+        item = PyIter_Next(it);
+        if (item == NULL) {
+            if (PyErr_Occurred()) {
+                goto err;
+            }
+            break;
+        }
+
+        fast = PySequence_Fast(item, "");
+        if (fast == NULL) {
+            if (PyErr_ExceptionMatches(PyExc_TypeError))
+                PyErr_Format(PyExc_TypeError,
+                    "cannot convert map update "
+                    "sequence element #%zd to a sequence",
+                    i);
+            goto err;
+        }
+
+        n = PySequence_Fast_GET_SIZE(fast);
+        if (n != 2) {
+            PyErr_Format(PyExc_ValueError,
+                         "map update sequence element #%zd "
+                         "has length %zd; 2 is required",
+                         i, n);
+            goto err;
+        }
+
+        key = PySequence_Fast_GET_ITEM(fast, 0);
+        val = PySequence_Fast_GET_ITEM(fast, 1);
+        Py_INCREF(key);
+        Py_INCREF(val);
+
+        key_hash = map_hash(key);
+        if (key_hash == -1) {
+            Py_DECREF(key);
+            Py_DECREF(val);
+            goto err;
+        }
+
+        MapNode *iter_root = map_node_assoc(
+            last_root,
+            0, key_hash, key, val, &added_leaf,
+            mutid);
+
+        Py_DECREF(key);
+        Py_DECREF(val);
+
+        if (iter_root == NULL) {
+            goto err;
+        }
+
+        if (added_leaf) {
+            last_count++;
+        }
+
+        Py_SETREF(last_root, iter_root);
+
+        Py_DECREF(fast);
+        Py_DECREF(item);
+    }
+
+    Py_DECREF(it);
+
+    *new_root = last_root;
+    *new_count = last_count;
+
+    return 0;
+
+err:
+    Py_DECREF(last_root);
+    Py_XDECREF(item);
+    Py_XDECREF(fast);
+    Py_DECREF(it);
+    return -1;
+}
+
+
+static int
+map_node_update(uint64_t mutid,
+                PyObject *src,
+                MapNode *root, Py_ssize_t count,
+                MapNode **new_root, Py_ssize_t *new_count)
+{
+    if (Map_Check(src)) {
+        return map_node_update_from_map(
+            mutid, (MapObject *)src, root, count, new_root, new_count);
+    }
+    else if (PyDict_Check(src)) {
+        return map_node_update_from_dict(
+            mutid, src, root, count, new_root, new_count);
+    }
+    else {
+        return map_node_update_from_seq(
+            mutid, src, root, count, new_root, new_count);
+    }
+}
+
+
+static int
+map_update_inplace(uint64_t mutid, MapObject *o, PyObject *src)
+{
+    MapNode *new_root = NULL;
+    Py_ssize_t new_count;
+
+    int ret = map_node_update(
+        mutid, src,
+        o->h_root, o->h_count,
+        &new_root, &new_count);
+
+    if (ret) {
+        return -1;
+    }
+
+    assert(new_root);
+
+    Py_SETREF(o->h_root, new_root);
+    o->h_count = new_count;
+
+    return 0;
+}
+
+
+static MapObject *
+map_update(uint64_t mutid, MapObject *o, PyObject *src)
+{
+    MapNode *new_root = NULL;
+    Py_ssize_t new_count;
+
+    int ret = map_node_update(
+        mutid, src,
+        o->h_root, o->h_count,
+        &new_root, &new_count);
+
+    if (ret) {
+        return NULL;
+    }
+
+    assert(new_root);
+
+    MapObject *new = map_alloc();
+    if (new == NULL) {
+        Py_DECREF(new_root);
+        return NULL;
+    }
+
+    Py_XSETREF(new->h_root, new_root);
+    new->h_count = new_count;
+
+    return new;
+}
 
 
 static PyObject *
@@ -3425,7 +3815,6 @@ PyTypeObject _Map_CollisionNode_Type = {
 static void
 module_free(void *m)
 {
-    Py_CLEAR(_empty_map);
     Py_CLEAR(_empty_bitmap_node);
 }
 
