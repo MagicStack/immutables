@@ -722,6 +722,9 @@ class MapMutation:
     def __len__(self):
         return self.__count
 
+    def __reduce__(self):
+        raise TypeError("can't pickle {} objects".format(type(self).__name__))
+
     def __hash__(self):
         raise TypeError('unhashable type: {}'.format(type(self).__name__))
 
