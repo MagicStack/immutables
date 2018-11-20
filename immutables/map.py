@@ -409,10 +409,15 @@ class GenWrapper:
 
 class Map:
 
-    def __init__(self):
+    def __init__(self, col=None, **kw):
         self.__count = 0
         self.__root = BitmapNode(0, 0, [], 0)
         self.__hash = -1
+
+        if col or kw:
+            init = self.update(col, **kw)
+            self.__count = init.__count
+            self.__root = init.__root
 
     @classmethod
     def _new(cls, count, root):
@@ -442,6 +447,56 @@ class Map:
                     return False
 
         return True
+
+    def update(self, col=None, **kw):
+        it = None
+        if col is not None:
+            if hasattr(col, 'items'):
+                it = iter(col.items())
+            else:
+                it = iter(col)
+
+        if it is not None:
+            if kw:
+                it = iter(itertools.chain(it, kw.items()))
+        else:
+            if kw:
+                it = iter(kw.items())
+
+        if it is None:
+
+            return self
+
+        mutid = _mut_id()
+        root = self.__root
+        count = self.__count
+
+        i = 0
+        while True:
+            try:
+                tup = next(it)
+            except StopIteration:
+                break
+
+            try:
+                tup = tuple(tup)
+            except TypeError:
+                raise TypeError(
+                    f'cannot convert map update '
+                    f'sequence element #{i} to a sequence') from None
+            key, val, *r = tup
+            if r:
+                raise ValueError(
+                    f'map update sequence element #{i} has length '
+                    f'{len(r) + 2}; 2 is required')
+
+            root, added = root.assoc(0, map_hash(key), key, val, mutid)
+            if added:
+                count += 1
+
+            i += 1
+
+        return Map._new(count, root)
 
     def mutate(self):
         return MapMutation(self.__count, self.__root)

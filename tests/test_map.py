@@ -60,7 +60,7 @@ class KeyStr(str):
         return super().__eq__(other)
 
 
-class HaskKeyCrasher:
+class HashKeyCrasher:
 
     def __init__(self, *, error_on_hash=False, error_on_eq=False,
                  error_on_repr=False):
@@ -92,13 +92,6 @@ class ReprError(Exception):
 class BaseMapTest:
 
     Map = None
-
-    def test_init_no_args(self):
-        with self.assertRaisesRegex(TypeError, 'positional argument'):
-            self.Map(dict(a=1))
-
-        with self.assertRaisesRegex(TypeError, 'keyword argument'):
-            self.Map(a=1)
 
     def test_hashkey_helper_1(self):
         k1 = HashKey(10, 'aaa')
@@ -260,14 +253,14 @@ class BaseMapTest:
                 key = KeyStr(i)
 
                 if not (i % CRASH_HASH_EVERY):
-                    with HaskKeyCrasher(error_on_hash=True):
+                    with HashKeyCrasher(error_on_hash=True):
                         with self.assertRaises(HashingError):
                             h.set(key, i)
 
                 h = h.set(key, i)
 
                 if not (i % CRASH_EQ_EVERY):
-                    with HaskKeyCrasher(error_on_eq=True):
+                    with HashKeyCrasher(error_on_eq=True):
                         with self.assertRaises(EqError):
                             h.get(KeyStr(i))  # really trigger __eq__
 
@@ -289,12 +282,12 @@ class BaseMapTest:
                 key = KeyStr(i)
 
                 if not (iter_i % CRASH_HASH_EVERY):
-                    with HaskKeyCrasher(error_on_hash=True):
+                    with HashKeyCrasher(error_on_hash=True):
                         with self.assertRaises(HashingError):
                             h.delete(key)
 
                 if not (iter_i % CRASH_EQ_EVERY):
-                    with HaskKeyCrasher(error_on_eq=True):
+                    with HashKeyCrasher(error_on_eq=True):
                         with self.assertRaises(EqError):
                             h.delete(KeyStr(i))
 
@@ -807,11 +800,11 @@ class BaseMapTest:
         self.assertFalse(B in h)
 
         with self.assertRaises(EqError):
-            with HaskKeyCrasher(error_on_eq=True):
+            with HashKeyCrasher(error_on_eq=True):
                 AA in h
 
         with self.assertRaises(HashingError):
-            with HaskKeyCrasher(error_on_hash=True):
+            with HashKeyCrasher(error_on_hash=True):
                 AA in h
 
     def test_map_getitem_1(self):
@@ -830,11 +823,11 @@ class BaseMapTest:
             h[B]
 
         with self.assertRaises(EqError):
-            with HaskKeyCrasher(error_on_eq=True):
+            with HashKeyCrasher(error_on_eq=True):
                 h[AA]
 
         with self.assertRaises(HashingError):
-            with HaskKeyCrasher(error_on_hash=True):
+            with HashKeyCrasher(error_on_hash=True):
                 h[AA]
 
     def test_repr_1(self):
@@ -850,11 +843,11 @@ class BaseMapTest:
         A = HashKey(100, 'A')
 
         with self.assertRaises(ReprError):
-            with HaskKeyCrasher(error_on_repr=True):
+            with HashKeyCrasher(error_on_repr=True):
                 repr(h.set(1, 2).set(A, 3).set(3, 4))
 
         with self.assertRaises(ReprError):
-            with HaskKeyCrasher(error_on_repr=True):
+            with HashKeyCrasher(error_on_repr=True):
                 repr(h.set(1, 2).set(2, A).set(3, 4))
 
     def test_repr_3(self):
@@ -895,12 +888,12 @@ class BaseMapTest:
 
         m = h.set(1, 2).set(A, 3).set(3, 4)
         with self.assertRaises(HashingError):
-            with HaskKeyCrasher(error_on_hash=True):
+            with HashKeyCrasher(error_on_hash=True):
                 hash(m)
 
         m = h.set(1, 2).set(2, A).set(3, 4)
         with self.assertRaises(HashingError):
-            with HaskKeyCrasher(error_on_hash=True):
+            with HashKeyCrasher(error_on_hash=True):
                 hash(m)
 
     def test_abc_1(self):
@@ -982,6 +975,110 @@ class BaseMapTest:
 
         hm2.delete('a')
         self.assertNotEqual(hm1, hm2)
+
+    def test_map_mut_5(self):
+        h = self.Map({'a': 1, 'b': 2}, z=100)
+        self.assertTrue(isinstance(h, self.Map))
+        self.assertEqual(dict(h.items()), {'a': 1, 'b': 2, 'z': 100})
+
+        h2 = h.update(z=200, y=-1)
+        self.assertEqual(dict(h.items()), {'a': 1, 'b': 2, 'z': 100})
+        self.assertEqual(dict(h2.items()), {'a': 1, 'b': 2, 'z': 200, 'y': -1})
+
+        h3 = h2.update([(1, 2), (3, 4)])
+        self.assertEqual(dict(h.items()), {'a': 1, 'b': 2, 'z': 100})
+        self.assertEqual(dict(h2.items()), {'a': 1, 'b': 2, 'z': 200, 'y': -1})
+        self.assertEqual(dict(h3.items()),
+                         {'a': 1, 'b': 2, 'z': 200, 'y': -1, 1: 2, 3: 4})
+
+        h4 = h3.update()
+        self.assertIs(h4, h3)
+
+        h5 = h4.update(self.Map({'zzz': 'yyz'}))
+
+        self.assertEqual(dict(h5.items()),
+                         {'a': 1, 'b': 2, 'z': 200, 'y': -1, 1: 2, 3: 4,
+                          'zzz': 'yyz'})
+
+    def test_map_mut_6(self):
+        h = self.Map({'a': 1, 'b': 2}, z=100)
+        self.assertEqual(dict(h.items()), {'a': 1, 'b': 2, 'z': 100})
+
+        with self.assertRaisesRegex(TypeError, 'not iterable'):
+            h.update(1)
+
+        with self.assertRaisesRegex(ValueError, 'map update sequence element'):
+            h.update([(1, 2), (3, 4, 5)])
+
+        with self.assertRaisesRegex(TypeError, 'cannot convert map update'):
+            h.update([(1, 2), 1])
+
+        self.assertEqual(dict(h.items()), {'a': 1, 'b': 2, 'z': 100})
+
+    def test_map_mut_7(self):
+        key = HashKey(123, 'aaa')
+
+        h = self.Map({'a': 1, 'b': 2}, z=100)
+        self.assertEqual(dict(h.items()), {'a': 1, 'b': 2, 'z': 100})
+
+        upd = {key: 1}
+        with HashKeyCrasher(error_on_hash=True):
+            with self.assertRaises(HashingError):
+                h.update(upd)
+
+        upd = self.Map({key: 'zzz'})
+        with HashKeyCrasher(error_on_hash=True):
+            with self.assertRaises(HashingError):
+                h.update(upd)
+
+        upd = [(1, 2), (key, 'zzz')]
+        with HashKeyCrasher(error_on_hash=True):
+            with self.assertRaises(HashingError):
+                h.update(upd)
+
+        self.assertEqual(dict(h.items()), {'a': 1, 'b': 2, 'z': 100})
+
+    def test_map_mut_8(self):
+        key1 = HashKey(123, 'aaa')
+        key2 = HashKey(123, 'bbb')
+
+        h = self.Map({key1: 123})
+        self.assertEqual(dict(h.items()), {key1: 123})
+
+        upd = {key2: 1}
+        with HashKeyCrasher(error_on_eq=True):
+            with self.assertRaises(EqError):
+                h.update(upd)
+
+        upd = self.Map({key2: 'zzz'})
+        with HashKeyCrasher(error_on_eq=True):
+            with self.assertRaises(EqError):
+                h.update(upd)
+
+        upd = [(1, 2), (key2, 'zzz')]
+        with HashKeyCrasher(error_on_eq=True):
+            with self.assertRaises(EqError):
+                h.update(upd)
+
+        self.assertEqual(dict(h.items()), {key1: 123})
+
+    def test_map_mut_9(self):
+        key1 = HashKey(123, 'aaa')
+
+        src = {key1: 123}
+        with HashKeyCrasher(error_on_hash=True):
+            with self.assertRaises(HashingError):
+                self.Map(src)
+
+        src = self.Map({key1: 123})
+        with HashKeyCrasher(error_on_hash=True):
+            with self.assertRaises(HashingError):
+                self.Map(src)
+
+        src = [(1, 2), (key1, 123)]
+        with HashKeyCrasher(error_on_hash=True):
+            with self.assertRaises(HashingError):
+                self.Map(src)
 
     def test_map_mut_stress(self):
         COLLECTION_SIZE = 7000
