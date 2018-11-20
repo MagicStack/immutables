@@ -3850,7 +3850,6 @@ mapmut_tp_richcompare(PyObject *v, PyObject *w, int op)
     }
 }
 
-
 static PyObject *
 mapmut_py_finalize(MapMutationObject *self, PyObject *args)
 {
@@ -3866,6 +3865,24 @@ mapmut_py_finalize(MapMutationObject *self, PyObject *args)
     o->h_count = self->m_count;
 
     return (PyObject *)o;
+}
+
+static PyObject *
+mapmut_py_enter(MapMutationObject *self, PyObject *args)
+{
+    Py_INCREF(self);
+    return (PyObject *)self;
+}
+
+static PyObject *
+mapmut_py_exit(MapMutationObject *self, PyObject *args)
+{
+    PyObject *ret = mapmut_py_finalize(self, NULL);
+    if (ret == NULL) {
+        return NULL;
+    }
+    Py_DECREF(ret);
+    Py_RETURN_FALSE;
 }
 
 static int
@@ -3951,6 +3968,8 @@ static PyMethodDef MapMutation_methods[] = {
     {"get", (PyCFunction)map_py_get, METH_VARARGS, NULL},
     {"pop", (PyCFunction)mapmut_py_pop, METH_VARARGS, NULL},
     {"finalize", (PyCFunction)mapmut_py_finalize, METH_NOARGS, NULL},
+    {"__enter__", (PyCFunction)mapmut_py_enter, METH_NOARGS, NULL},
+    {"__exit__", (PyCFunction)mapmut_py_exit, METH_VARARGS, NULL},
     {NULL, NULL}
 };
 

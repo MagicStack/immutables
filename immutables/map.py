@@ -633,6 +633,13 @@ class MapMutation:
     def set(self, key, val):
         self[key] = val
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.finalize()
+        return False
+
     def __delitem__(self, key):
         if self.__mutid == 0:
             raise ValueError(f'mutation {self!r} has been finalized')
