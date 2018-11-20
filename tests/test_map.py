@@ -1174,6 +1174,27 @@ class BaseMapTest:
             with self.assertRaises(EqError):
                 mm.set(key2, 123)
 
+    def test_map_mut_14(self):
+        m = self.Map(a=1, b=2)
+
+        with m.mutate() as mm:
+            mm['z'] = 100
+            del mm['a']
+
+        self.assertEqual(mm.finalize(), self.Map(z=100, b=2))
+
+    def test_map_mut_15(self):
+        m = self.Map(a=1, b=2)
+
+        with self.assertRaises(ZeroDivisionError):
+            with m.mutate() as mm:
+                mm['z'] = 100
+                del mm['a']
+                1 / 0
+
+        self.assertEqual(mm.finalize(), self.Map(z=100, b=2))
+        self.assertEqual(m, self.Map(a=1, b=2))
+
     def test_map_mut_stress(self):
         COLLECTION_SIZE = 7000
         TEST_ITERS_EVERY = 647
