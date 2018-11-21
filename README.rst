@@ -9,6 +9,9 @@ immutables
 
 .. image:: https://img.shields.io/pypi/v/immutables.svg
     :target: https://pypi.python.org/pypi/immutables
+    
+.. image:: https://img.shields.io/conda/vn/conda-forge/immutables.svg
+    :target: https://anaconda.org/conda-forge/immutables    
 
 An immutable mapping type for Python.
 
