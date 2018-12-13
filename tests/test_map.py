@@ -1148,6 +1148,9 @@ class BaseMapTest:
         with self.assertRaisesRegex(ValueError, 'has been finished'):
             mm['a'] = 'b'
 
+        with self.assertRaisesRegex(ValueError, 'has been finished'):
+            mm.update(a='b')
+
     def test_map_mut_13(self):
         key1 = HashKey(123, 'aaa')
         key2 = HashKey(123, 'aaa')

@@ -3880,6 +3880,10 @@ mapmut_py_update(MapMutationObject *self, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
+    if (mapmut_check_finalized(self)) {
+        return NULL;
+    }
+
     if (arg != NULL) {
         if (map_update_inplace(self->m_mutid, (BaseMapObject *)self, arg)) {
             return NULL;

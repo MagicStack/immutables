@@ -719,6 +719,9 @@ class MapMutation:
             return True
 
     def update(self, col=None, **kw):
+        if self.__mutid == 0:
+            raise ValueError('mutation {!r} has been finished'.format(self))
+
         it = None
         if col is not None:
             if hasattr(col, 'items'):
