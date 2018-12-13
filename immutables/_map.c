@@ -3819,6 +3819,13 @@ mapmut_set(MapMutationObject *o, PyObject *key, int32_t key_hash,
     return 0;
 }
 
+static int
+mapmut_finish(MapMutationObject *o)
+{
+    o->m_mutid = 0;
+    return 0;
+}
+
 static PyObject *
 mapmut_py_set(MapMutationObject *o, PyObject *args)
 {
@@ -3905,9 +3912,11 @@ mapmut_py_update(MapMutationObject *self, PyObject *args, PyObject *kwds)
 
 
 static PyObject *
-mapmut_py_finalize(MapMutationObject *self, PyObject *args)
+mapmut_py_finish(MapMutationObject *self, PyObject *args)
 {
-    self->m_mutid = 0;
+    if (mapmut_finish(self)) {
+        return NULL;
+    }
 
     MapObject *o = map_alloc();
     if (o == NULL) {
@@ -3931,11 +3940,9 @@ mapmut_py_enter(MapMutationObject *self, PyObject *args)
 static PyObject *
 mapmut_py_exit(MapMutationObject *self, PyObject *args)
 {
-    PyObject *ret = mapmut_py_finalize(self, NULL);
-    if (ret == NULL) {
+    if (mapmut_finish(self)) {
         return NULL;
     }
-    Py_DECREF(ret);
     Py_RETURN_FALSE;
 }
 
@@ -4021,7 +4028,7 @@ static PyMethodDef MapMutation_methods[] = {
     {"set", (PyCFunction)mapmut_py_set, METH_VARARGS, NULL},
     {"get", (PyCFunction)map_py_get, METH_VARARGS, NULL},
     {"pop", (PyCFunction)mapmut_py_pop, METH_VARARGS, NULL},
-    {"finish", (PyCFunction)mapmut_py_finalize, METH_NOARGS, NULL},
+    {"finish", (PyCFunction)mapmut_py_finish, METH_NOARGS, NULL},
     {"update", (PyCFunction)mapmut_py_update,
         METH_VARARGS | METH_KEYWORDS, NULL},
     {"__enter__", (PyCFunction)mapmut_py_enter, METH_NOARGS, NULL},
