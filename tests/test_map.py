@@ -1089,11 +1089,6 @@ class BaseMapTest:
             with self.assertRaises(HashingError):
                 self.Map(src)
 
-        src = self.Map({key1: 123})
-        with HashKeyCrasher(error_on_hash=True):
-            with self.assertRaises(HashingError):
-                self.Map(src)
-
         src = [(1, 2), (key1, 123)]
         with HashKeyCrasher(error_on_hash=True):
             with self.assertRaises(HashingError):
@@ -1194,6 +1189,47 @@ class BaseMapTest:
 
         self.assertEqual(mm.finish(), self.Map(z=100, b=2))
         self.assertEqual(m, self.Map(a=1, b=2))
+
+    def test_map_mut_16(self):
+        m = self.Map(a=1, b=2)
+        hash(m)
+
+        m2 = self.Map(m)
+        m3 = self.Map(m, c=3)
+
+        self.assertEqual(m, m2)
+        self.assertEqual(len(m), len(m2))
+        self.assertEqual(hash(m), hash(m2))
+
+        self.assertIsNot(m, m2)
+        self.assertEqual(m3, self.Map(a=1, b=2, c=3))
+
+    def test_map_mut_17(self):
+        m = self.Map(a=1)
+        with m.mutate() as mm:
+            with self.assertRaisesRegex(
+                    TypeError, 'cannot create Maps from MapMutations'):
+                self.Map(mm)
+
+    def test_map_mut_18(self):
+        m = self.Map(a=1, b=2)
+        with m.mutate() as mm:
+            mm.update(self.Map(x=1), z=2)
+            mm.update(c=3)
+            mm.update({'n': 100, 'a': 20})
+            m2 = mm.finish()
+
+        expected = self.Map(
+            {'b': 2, 'c': 3, 'n': 100, 'z': 2, 'x': 1, 'a': 20})
+
+        self.assertEqual(len(m2), 6)
+        self.assertEqual(m2, expected)
+        self.assertEqual(m, self.Map(a=1, b=2))
+
+    def test_map_mut_19(self):
+        m = self.Map(a=1, b=2)
+        m2 = m.update({'a': 20})
+        self.assertEqual(len(m2), 2)
 
     def test_map_mut_stress(self):
         COLLECTION_SIZE = 7000

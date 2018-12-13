@@ -387,7 +387,7 @@ map_node_update(uint64_t mutid,
 
 
 static int
-map_update_inplace(uint64_t mutid, MapObject *o, PyObject *src);
+map_update_inplace(uint64_t mutid, BaseMapObject *o, PyObject *src);
 
 static MapObject *
 map_update(uint64_t mutid, MapObject *o, PyObject *src);
@@ -2153,6 +2153,8 @@ map_node_assoc(MapNode *node,
        map_node_{nodetype}_assoc method.
     */
 
+    *added_leaf = 0;
+
     if (IS_BITMAP_NODE(node)) {
         return map_node_bitmap_assoc(
             (MapNode_Bitmap *)node,
@@ -2892,9 +2894,26 @@ map_tp_init(MapObject *self, PyObject *args, PyObject *kwds)
     }
 
     if (arg != NULL) {
-        mutid = mutid_counter++;
-        if (map_update_inplace(mutid, self, arg)) {
+        if (Map_Check(arg)) {
+            MapObject *other = (MapObject *)arg;
+
+            Py_INCREF(other->h_root);
+            Py_SETREF(self->h_root, other->h_root);
+
+            self->h_count = other->h_count;
+            self->h_hash = other->h_hash;
+        }
+        else if (MapMutation_Check(arg)) {
+            PyErr_Format(
+                PyExc_TypeError,
+                "cannot create Maps from MapMutations");
             return -1;
+        }
+        else {
+            mutid = mutid_counter++;
+            if (map_update_inplace(mutid, (BaseMapObject *)self, arg)) {
+                return -1;
+            }
         }
     }
 
@@ -2907,7 +2926,7 @@ map_tp_init(MapObject *self, PyObject *args, PyObject *kwds)
             mutid = mutid_counter++;
         }
 
-        if (map_update_inplace(mutid, self, kwds)) {
+        if (map_update_inplace(mutid, (BaseMapObject *)self, kwds)) {
             return -1;
         }
     }
@@ -3665,14 +3684,14 @@ map_node_update(uint64_t mutid,
 
 
 static int
-map_update_inplace(uint64_t mutid, MapObject *o, PyObject *src)
+map_update_inplace(uint64_t mutid, BaseMapObject *o, PyObject *src)
 {
     MapNode *new_root = NULL;
     Py_ssize_t new_count;
 
     int ret = map_node_update(
         mutid, src,
-        o->h_root, o->h_count,
+        o->b_root, o->b_count,
         &new_root, &new_count);
 
     if (ret) {
@@ -3681,8 +3700,8 @@ map_update_inplace(uint64_t mutid, MapObject *o, PyObject *src)
 
     assert(new_root);
 
-    Py_SETREF(o->h_root, new_root);
-    o->h_count = new_count;
+    Py_SETREF(o->b_root, new_root);
+    o->b_count = new_count;
 
     return 0;
 }
@@ -3853,6 +3872,35 @@ mapmut_tp_richcompare(PyObject *v, PyObject *w, int op)
 }
 
 static PyObject *
+mapmut_py_update(MapMutationObject *self, PyObject *args, PyObject *kwds)
+{
+    PyObject *arg = NULL;
+
+    if (!PyArg_UnpackTuple(args, "update", 0, 1, &arg)) {
+        return NULL;
+    }
+
+    if (arg != NULL) {
+        if (map_update_inplace(self->m_mutid, (BaseMapObject *)self, arg)) {
+            return NULL;
+        }
+    }
+
+    if (kwds != NULL) {
+        if (!PyArg_ValidateKeywordArguments(kwds)) {
+            return NULL;
+        }
+
+        if (map_update_inplace(self->m_mutid, (BaseMapObject *)self, kwds)) {
+            return NULL;
+        }
+    }
+
+    Py_RETURN_NONE;
+}
+
+
+static PyObject *
 mapmut_py_finalize(MapMutationObject *self, PyObject *args)
 {
     self->m_mutid = 0;
@@ -3970,6 +4018,8 @@ static PyMethodDef MapMutation_methods[] = {
     {"get", (PyCFunction)map_py_get, METH_VARARGS, NULL},
     {"pop", (PyCFunction)mapmut_py_pop, METH_VARARGS, NULL},
     {"finish", (PyCFunction)mapmut_py_finalize, METH_NOARGS, NULL},
+    {"update", (PyCFunction)mapmut_py_update,
+        METH_VARARGS | METH_KEYWORDS, NULL},
     {"__enter__", (PyCFunction)mapmut_py_enter, METH_NOARGS, NULL},
     {"__exit__", (PyCFunction)mapmut_py_exit, METH_VARARGS, NULL},
     {NULL, NULL}

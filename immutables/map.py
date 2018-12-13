@@ -438,6 +438,14 @@ class Map:
         self.__root = BitmapNode(0, 0, [], 0)
         self.__hash = -1
 
+        if isinstance(col, Map):
+            self.__count = col.__count
+            self.__root = col.__root
+            self.__hash = col.__hash
+            col = None
+        elif isinstance(col, MapMutation):
+            raise TypeError('cannot create Maps from MapMutations')
+
         if col or kw:
             init = self.update(col, **kw)
             self.__count = init.__count
@@ -640,6 +648,9 @@ class MapMutation:
         self.finish()
         return False
 
+    def __iter__(self):
+        raise TypeError('{} is not iterable'.format(type(self)))
+
     def __delitem__(self, key):
         if self.__mutid == 0:
             raise ValueError('mutation {!r} has been finished'.format(self))
@@ -706,6 +717,56 @@ class MapMutation:
             return False
         else:
             return True
+
+    def update(self, col=None, **kw):
+        it = None
+        if col is not None:
+            if hasattr(col, 'items'):
+                it = iter(col.items())
+            else:
+                it = iter(col)
+
+        if it is not None:
+            if kw:
+                it = iter(itertools.chain(it, kw.items()))
+        else:
+            if kw:
+                it = iter(kw.items())
+
+        if it is None:
+
+            return self
+
+        root = self.__root
+        count = self.__count
+
+        i = 0
+        while True:
+            try:
+                tup = next(it)
+            except StopIteration:
+                break
+
+            try:
+                tup = tuple(tup)
+            except TypeError:
+                raise TypeError(
+                    'cannot convert map update '
+                    'sequence element #{} to a sequence'.format(i)) from None
+            key, val, *r = tup
+            if r:
+                raise ValueError(
+                    'map update sequence element #{} has length '
+                    '{}; 2 is required'.format(i, len(r) + 2))
+
+            root, added = root.assoc(0, map_hash(key), key, val, self.__mutid)
+            if added:
+                count += 1
+
+            i += 1
+
+        self.__root = root
+        self.__count = count
 
     def finish(self):
         self.__mutid = 0
