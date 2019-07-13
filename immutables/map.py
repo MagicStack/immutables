@@ -2,6 +2,7 @@ import collections.abc
 import itertools
 import reprlib
 import sys
+from typing import Mapping, TypeVar, Any, Hashable, Iterator, Union
 
 
 __all__ = ('Map',)
@@ -431,7 +432,12 @@ class MapItems:
         return iter(self.__root.items())
 
 
-class Map:
+K = TypeVar('K', bound=Hashable)
+V = TypeVar('V', bound=Any)
+D = TypeVar('D', bound=Any)
+
+
+class Map(Mapping[K, V]):
 
     def __init__(self, col=None, **kw):
         self.__count = 0
@@ -462,7 +468,7 @@ class Map:
     def __reduce__(self):
         return (type(self), (dict(self.items()),))
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.__count
 
     def __eq__(self, other):
@@ -536,7 +542,7 @@ class Map:
     def mutate(self):
         return MapMutation(self.__count, self.__root)
 
-    def set(self, key, val):
+    def set(self, key: K, val: V) -> "Map[K, V]":
         new_count = self.__count
         new_root, added = self.__root.assoc(0, map_hash(key), key, val, 0)
 
@@ -549,7 +555,7 @@ class Map:
 
         return Map._new(new_count, new_root)
 
-    def delete(self, key):
+    def delete(self, key: K) -> "Map[K, V]":
         res, node = self.__root.without(0, map_hash(key), key, 0)
         if res is W_EMPTY:
             return Map()
@@ -558,16 +564,16 @@ class Map:
         else:
             return Map._new(self.__count - 1, node)
 
-    def get(self, key, default=None):
+    def get(self, key: K, default: D = None) -> Union[V, D]:
         try:
             return self.__root.find(0, map_hash(key), key)
         except KeyError:
             return default
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: K) -> V:
         return self.__root.find(0, map_hash(key), key)
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         try:
             self.__root.find(0, map_hash(key), key)
         except KeyError:
@@ -575,7 +581,7 @@ class Map:
         else:
             return True
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[K]:
         yield from self.__root.keys()
 
     def keys(self):

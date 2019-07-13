@@ -3363,6 +3363,11 @@ map_reduce(MapObject *self)
     return tup;
 }
 
+static PyObject *
+map_py_class_getitem(PyObject *type, PyObject *item)
+{
+    return type;
+}
 
 static PyMethodDef Map_methods[] = {
     {"set", (PyCFunction)map_py_set, METH_VARARGS, NULL},
@@ -3375,6 +3380,7 @@ static PyMethodDef Map_methods[] = {
     {"update", (PyCFunction)map_py_update, METH_VARARGS | METH_KEYWORDS, NULL},
     {"__reduce__", (PyCFunction)map_reduce, METH_NOARGS, NULL},
     {"__dump__", (PyCFunction)map_py_dump, METH_NOARGS, NULL},
+    {"__class_getitem__", (PyCFunction)map_py_class_getitem, METH_O|METH_CLASS, NULL},
     {NULL, NULL}
 };
 
