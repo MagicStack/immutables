@@ -2,7 +2,6 @@ import collections.abc
 import itertools
 import reprlib
 import sys
-from typing import Mapping, TypeVar, Any, Hashable, Iterator, Union
 
 
 __all__ = ('Map',)
@@ -432,12 +431,7 @@ class MapItems:
         return iter(self.__root.items())
 
 
-K = TypeVar('K', bound=Hashable)
-V = TypeVar('V', bound=Any)
-D = TypeVar('D', bound=Any)
-
-
-class Map(Mapping[K, V]):
+class Map:
 
     def __init__(self, col=None, **kw):
         self.__count = 0
@@ -468,7 +462,7 @@ class Map(Mapping[K, V]):
     def __reduce__(self):
         return (type(self), (dict(self.items()),))
 
-    def __len__(self) -> int:
+    def __len__(self):
         return self.__count
 
     def __eq__(self, other):
@@ -542,7 +536,7 @@ class Map(Mapping[K, V]):
     def mutate(self):
         return MapMutation(self.__count, self.__root)
 
-    def set(self, key: K, val: V) -> "Map[K, V]":
+    def set(self, key, val):
         new_count = self.__count
         new_root, added = self.__root.assoc(0, map_hash(key), key, val, 0)
 
@@ -555,7 +549,7 @@ class Map(Mapping[K, V]):
 
         return Map._new(new_count, new_root)
 
-    def delete(self, key: K) -> "Map[K, V]":
+    def delete(self, key):
         res, node = self.__root.without(0, map_hash(key), key, 0)
         if res is W_EMPTY:
             return Map()
@@ -564,16 +558,16 @@ class Map(Mapping[K, V]):
         else:
             return Map._new(self.__count - 1, node)
 
-    def get(self, key: K, default: D = None) -> Union[V, D]:
+    def get(self, key, default=None):
         try:
             return self.__root.find(0, map_hash(key), key)
         except KeyError:
             return default
 
-    def __getitem__(self, key: K) -> V:
+    def __getitem__(self, key):
         return self.__root.find(0, map_hash(key), key)
 
-    def __contains__(self, key: object) -> bool:
+    def __contains__(self, key):
         try:
             self.__root.find(0, map_hash(key), key)
         except KeyError:
@@ -581,7 +575,7 @@ class Map(Mapping[K, V]):
         else:
             return True
 
-    def __iter__(self) -> Iterator[K]:
+    def __iter__(self):
         yield from self.__root.keys()
 
     def keys(self):
@@ -635,6 +629,9 @@ class Map(Mapping[K, V]):
         buf = []
         self.__root.dump(buf, 0)
         return '\n'.join(buf)
+
+    def __class_getitem__(cls, item):
+        return cls
 
 
 class MapMutation:

@@ -3366,6 +3366,7 @@ map_reduce(MapObject *self)
 static PyObject *
 map_py_class_getitem(PyObject *type, PyObject *item)
 {
+    Py_INCREF(type);
     return type;
 }
 
