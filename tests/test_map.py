@@ -1296,6 +1296,9 @@ class BaseMapTest:
         with self.assertRaisesRegex(TypeError, "can't pickle"):
             pickle.dumps(h.mutate())
 
+    def test_map_is_subscriptable(self):
+        self.assertIs(self.Map[int, str], self.Map)
+
 
 class PyMapTest(BaseMapTest, unittest.TestCase):
 
