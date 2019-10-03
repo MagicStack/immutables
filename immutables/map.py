@@ -630,6 +630,9 @@ class Map:
         self.__root.dump(buf, 0)
         return '\n'.join(buf)
 
+    def __class_getitem__(cls, item):
+        return cls
+
 
 class MapMutation:
 

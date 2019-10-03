@@ -2,6 +2,7 @@ import collections.abc
 import gc
 import pickle
 import random
+import sys
 import unittest
 import weakref
 
@@ -1295,6 +1296,10 @@ class BaseMapTest:
 
         with self.assertRaisesRegex(TypeError, "can't pickle"):
             pickle.dumps(h.mutate())
+
+    @unittest.skipIf(sys.version_info < (3, 7, 0), "__class_getitem__ is not available")
+    def test_map_is_subscriptable(self):
+        self.assertIs(self.Map[int, str], self.Map)
 
 
 class PyMapTest(BaseMapTest, unittest.TestCase):
