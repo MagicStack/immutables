@@ -57,6 +57,7 @@ setuptools.setup(
     url='https://github.com/MagicStack/immutables',
     license='Apache License, Version 2.0',
     packages=['immutables'],
+    package_data={"immutables": ["py.typed", "*.pyi"]},
     provides=['immutables'],
     include_package_data=True,
     ext_modules=ext_modules,
