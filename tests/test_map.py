@@ -1294,7 +1294,7 @@ class BaseMapTest:
             self.assertTrue(isinstance(uh, self.Map))
             self.assertEqual(h, uh)
 
-        with self.assertRaisesRegex(TypeError, "can't pickle"):
+        with self.assertRaisesRegex(TypeError, "can('t|not) pickle"):
             pickle.dumps(h.mutate())
 
     @unittest.skipIf(sys.version_info < (3, 7, 0), "__class_getitem__ is not available")
