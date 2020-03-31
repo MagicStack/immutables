@@ -1,0 +1,88 @@
+Create empty:
+	Map:	1e-07
+	PMap:	1.2e-07
+	dict:	9.9e-08
+Create small :
+	Map:	0.00024
+	PMap:	0.0004
+	dict:	5.2e-06
+Create medium :
+	Map:	0.31
+	PMap:	0.0037
+	dict:	0.002
+Create large :
+	Map:	8.4
+	PMap:	2.9
+	dict:	1.8
+Random set to small :
+	Map:	7.5e-09
+	PMap:	7.4e-09
+	dict:	7.5e-09
+Random set to medium :
+	Map:	0.0034
+	PMap:	0.27
+	dict:	0.0002
+Random set to large :
+	Map:	7.4
+	PMap:	19
+	dict:	2
+Random update to small :
+	Map:	3.7e-07
+	PMap:	1.2e-06
+	dict:	5.1e-07
+Random update to medium :
+	Map:	0.0071
+	PMap:	0.34
+	dict:	0.00041
+Random update to large :
+	Map:	7.4
+	PMap:	24
+	dict:	2.8
+Random read from small :
+	Map:	3.4e-07
+	PMap:	1.3e-06
+	dict:	4.8e-07
+Random read from medium :
+	Map:	0.0048
+	PMap:	0.032
+	dict:	0.00035
+Random read from large :
+	Map:	7.6
+	PMap:	25
+	dict:	3.1
+Iterate keys from small :
+	Map:	2.1e-06
+	PMap:	5.6e-06
+	dict:	7.1e-07
+Iterate keys from medium :
+	Map:	0.0022
+	PMap:	0.00031
+	dict:	4.9e-05
+Iterate keys from large :
+	Map:	0.5
+	PMap:	0.14
+	dict:	0.027
+Iterate values from small :
+	Map:	1.4e-06
+	PMap:	7.6e-06
+	dict:	6.4e-07
+Iterate values from medium :
+	Map:	0.0011
+	PMap:	0.0022
+	dict:	5e-05
+Iterate values from large :
+	Map:	0.46
+	PMap:	0.9
+	dict:	0.027
+Iterate items from small :
+	Map:	1.4e-06
+	PMap:	7.7e-06
+	dict:	7.6e-07
+Iterate items from medium :
+	Map:	0.0023
+	PMap:	0.0011
+	dict:	5.9e-05
+Iterate items from large :
+	Map:	0.48
+	PMap:	0.99
+	dict:	0.034

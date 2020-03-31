@@ -1,0 +1,3 @@
+immutables==0.11
+pyrsistent==0.16.0
+pyimmutable==0.2.1
