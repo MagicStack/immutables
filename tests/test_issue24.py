@@ -2,7 +2,6 @@ import unittest
 
 
 from immutables.map import Map as PyMap
-from immutables.map_with_array_nodes import Map as PyAMap
 
 
 class Issue24Base:
@@ -32,10 +31,6 @@ class Issue24PyTest(Issue24Base, unittest.TestCase):
 @unittest.skipIf(CMap is None, 'C Map is not available')
 class Issue24CTest(Issue24Base, unittest.TestCase):
     Map = CMap
-
-
-class Issue24ArrayTest(Issue24Base, unittest.TestCase):
-    Map = PyAMap
 
 
 if __name__ == '__main__':
