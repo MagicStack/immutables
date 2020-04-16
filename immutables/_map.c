@@ -1806,6 +1806,7 @@ map_node_array_assoc(MapNode_Array *self,
 
         if (mutid != 0 && self->a_mutid == mutid) {
             new_node = self;
+            self->a_count++; /*must update count*/
             Py_INCREF(self);
         }
         else {
