@@ -1806,6 +1806,7 @@ map_node_array_assoc(MapNode_Array *self,
 
         if (mutid != 0 && self->a_mutid == mutid) {
             new_node = self;
+            self->a_count++; /*must update count*/
             Py_INCREF(self);
         }
         else {
@@ -1940,9 +1941,9 @@ map_node_array_without(MapNode_Array *self,
                     if (target == NULL) {
                         return W_ERROR;
                     }
-                    target->a_count = new_count;
                 }
 
+                target->a_count = new_count;
                 Py_CLEAR(target->a_array[idx]);
 
                 *new_node = (MapNode*)target;  /* borrow */
