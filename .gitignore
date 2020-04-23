@@ -19,4 +19,4 @@ __pycache__/
 /.cache
 /.pytest_cache
 /.coverage
-
+/.mypy_cache

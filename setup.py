@@ -10,7 +10,7 @@ if platform.uname().system != 'Windows':
 
 
 with open(os.path.join(
-        os.path.dirname(__file__), 'immutables', '__init__.py')) as f:
+        os.path.dirname(__file__), 'immutables', '_version.py')) as f:
     for line in f:
         if line.startswith('__version__ ='):
             _, _, version = line.partition('=')
