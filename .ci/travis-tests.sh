@@ -13,4 +13,4 @@ if [ "${TRAVIS_OS_NAME}" == "osx" ]; then
     eval "$(pyenv init -)"
 fi
 
-python setup.py test
+env DEBUG_IMMUTABLES=1 python setup.py test
