@@ -240,7 +240,9 @@ class BaseMapTest:
         #                             <Key name:E hash:362244>: 'e'
         #     <Key name:B hash:101>: 'b'
 
-    def test_map_stress(self):
+
+
+    def test_map_stress_01(self):
         COLLECTION_SIZE = 7000
         TEST_ITERS_EVERY = 647
         CRASH_HASH_EVERY = 97
@@ -329,6 +331,78 @@ class BaseMapTest:
             self.assertEqual(len(d), 0)
             self.assertEqual(len(h), 0)
             self.assertEqual(list(h.items()), [])
+
+    def test_map_stress_02(self):
+        COLLECTION_SIZE = 20000
+        TEST_ITERS_EVERY = 647
+        CRASH_HASH_EVERY = 97
+        DELETE_EVERY = 3
+        CRASH_EQ_EVERY = 11
+
+        h = self.Map()
+        d = dict()
+
+        for i in range(COLLECTION_SIZE // 2):
+            key = KeyStr(i)
+
+            if not (i % CRASH_HASH_EVERY):
+                with HashKeyCrasher(error_on_hash=True):
+                    with self.assertRaises(HashingError):
+                        h.set(key, i)
+
+            h = h.set(key, i)
+
+            if not (i % CRASH_EQ_EVERY):
+                with HashKeyCrasher(error_on_eq=True):
+                    with self.assertRaises(EqError):
+                        h.get(KeyStr(i))  # really trigger __eq__
+
+            d[key] = i
+            self.assertEqual(len(d), len(h))
+
+            if not (i % TEST_ITERS_EVERY):
+                self.assertEqual(set(h.items()), set(d.items()))
+                self.assertEqual(len(h.items()), len(d.items()))
+
+        with h.mutate() as m:
+            for i in range(COLLECTION_SIZE // 2, COLLECTION_SIZE):
+                key = KeyStr(i)
+
+                if not (i % CRASH_HASH_EVERY):
+                    with HashKeyCrasher(error_on_hash=True):
+                        with self.assertRaises(HashingError):
+                            m[key] = i
+
+                m[key] = i
+
+                if not (i % CRASH_EQ_EVERY):
+                    with HashKeyCrasher(error_on_eq=True):
+                        with self.assertRaises(EqError):
+                            m[KeyStr(i)]
+
+                d[key] = i
+                self.assertEqual(len(d), len(m))
+
+                if not (i % DELETE_EVERY):
+                    del m[key]
+                    del d[key]
+
+                self.assertEqual(len(d), len(m))
+
+            h = m.finish()
+
+        self.assertEqual(len(h), len(d))
+        self.assertEqual(set(h.items()), set(d.items()))
+
+        with h.mutate() as m:
+            for key in list(d):
+                del d[key]
+                del m[key]
+                self.assertEqual(len(m), len(d))
+            h = m.finish()
+
+        self.assertEqual(len(h), len(d))
+        self.assertEqual(set(h.items()), set(d.items()))
 
     def test_map_delete_1(self):
         A = HashKey(100, 'A')
@@ -1234,6 +1308,67 @@ class BaseMapTest:
         m = self.Map(a=1, b=2)
         m2 = m.update({'a': 20})
         self.assertEqual(len(m2), 2)
+
+    def test_map_mut_20(self):
+        # Issue 24:
+
+        h = self.Map()
+
+        for i in range(19):
+            # Create more than 16 keys to trigger the root bitmap
+            # node to be converted into an array node
+            h = h.set(HashKey(i, i), i)
+
+
+        h = h.set(HashKey(18, '18-collision'), 18)
+
+        with h.mutate() as m:
+            del m[HashKey(18, 18)]
+            del m[HashKey(18, '18-collision')]
+
+            # The pre-issue-24 code failed to update the number of array
+            # node element, so at this point it would be greater than it
+            # actually is.
+            h = m.finish()
+
+        # Any of the below operations shouldn't crash the debug build.
+        with h.mutate() as m:
+            for i in range(18):
+                del m[HashKey(i, i)]
+            h = m.finish()
+        h = h.set(HashKey(21, 21), 21)
+        h = h.set(HashKey(22, 22), 22)
+
+    def test_map_mut_21(self):
+        # Issue 24:
+        # Array nodes, while in mutation, failed to increment the
+        # internal count of elements when adding a new key to it.
+        # Because the internal count
+
+        h = self.Map()
+
+        for i in range(18):
+            # Create more than 16 keys to trigger the root bitmap
+            # node to be converted into an array node
+            h = h.set(HashKey(i, i), i)
+
+        with h.mutate() as m:
+            # Add one new key to the array node
+            m[HashKey(18, 18)] = 18
+            # Add another key -- after this the old code failed
+            # to increment the number of elements in the mutated
+            # array node.
+            m[HashKey(19, 19)] = 19
+            h = m.finish()
+
+        for i in range(20):
+            # Start deleting keys one by one. Because array node
+            # element count was accounted incorrectly (smaller by 1
+            # than it actually is, the mutation for "del h[18]" would
+            # create an empty array node, clipping the "19" key).
+            # Before the issue #24 fix, the below line would crash
+            # on i=19.
+            h = h.delete(HashKey(i, i))
 
     def test_map_mut_stress(self):
         COLLECTION_SIZE = 7000

@@ -1,4 +1,4 @@
-import os.path
+import os
 import platform
 import setuptools
 
@@ -22,11 +22,17 @@ with open(os.path.join(
 
 
 if platform.python_implementation() == 'CPython':
+    if os.environ.get("DEBUG_IMMUTABLES") == '1':
+        undef_macros = ["NDEBUG"]
+    else:
+        undef_macros = None
+
     ext_modules = [
         setuptools.Extension(
             "immutables._map",
             ["immutables/_map.c"],
-            extra_compile_args=CFLAGS)
+            extra_compile_args=CFLAGS,
+            undef_macros=undef_macros)
     ]
 else:
     ext_modules = []
