@@ -393,7 +393,7 @@ static MapObject *
 map_update(uint64_t mutid, MapObject *o, PyObject *src);
 
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 static void
 _map_node_array_validate(void *o)
 {
@@ -1110,7 +1110,7 @@ map_node_bitmap_without(MapNode_Bitmap *self,
                     }
                 }
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
                 /* Ensure that Collision.without implementation
                    converts to Bitmap nodes itself.
                 */
@@ -2009,7 +2009,7 @@ map_node_array_without(MapNode_Array *self,
                 }
                 else {
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
                     if (IS_COLLISION_NODE(node)) {
                         assert(
                             (map_node_collision_count(
@@ -2303,7 +2303,7 @@ map_iterator_bitmap_next(MapIteratorState *iter,
     Py_ssize_t pos = iter->i_pos[level];
 
     if (pos + 1 >= Py_SIZE(node)) {
-#ifndef NDEBUG
+#if !defined(NDEBUG)
         assert(iter->i_level >= 0);
         iter->i_nodes[iter->i_level] = NULL;
 #endif
@@ -2340,7 +2340,7 @@ map_iterator_collision_next(MapIteratorState *iter,
     Py_ssize_t pos = iter->i_pos[level];
 
     if (pos + 1 >= Py_SIZE(node)) {
-#ifndef NDEBUG
+#if !defined(NDEBUG)
         assert(iter->i_level >= 0);
         iter->i_nodes[iter->i_level] = NULL;
 #endif
@@ -2364,7 +2364,7 @@ map_iterator_array_next(MapIteratorState *iter,
     Py_ssize_t pos = iter->i_pos[level];
 
     if (pos >= HAMT_ARRAY_NODE_SIZE) {
-#ifndef NDEBUG
+#if !defined(NDEBUG)
         assert(iter->i_level >= 0);
         iter->i_nodes[iter->i_level] = NULL;
 #endif
@@ -2386,7 +2386,7 @@ map_iterator_array_next(MapIteratorState *iter,
         }
     }
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
     assert(iter->i_level >= 0);
     iter->i_nodes[iter->i_level] = NULL;
 #endif

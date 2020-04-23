@@ -18,20 +18,23 @@ with open(os.path.join(
             break
     else:
         raise RuntimeError(
-            'unable to read the version from immutables/__init__.py')
+            'unable to read the version from immutables/_version.py')
 
 
 if platform.python_implementation() == 'CPython':
     if os.environ.get("DEBUG_IMMUTABLES") == '1':
-        undef_macros = ["NDEBUG"]
+        define_macros = []
+        undef_macros = ['NDEBUG']
     else:
-        undef_macros = None
+        define_macros = [('NDEBUG', '1')]
+        undef_macros = []
 
     ext_modules = [
         setuptools.Extension(
             "immutables._map",
             ["immutables/_map.c"],
             extra_compile_args=CFLAGS,
+            define_macros=define_macros,
             undef_macros=undef_macros)
     ]
 else:
