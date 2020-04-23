@@ -10,13 +10,19 @@ on:
       - master
 
 jobs:
-  test:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.6, 3.7, 3.8]
-        os: [ubuntu-latest, macos-latest]
+        python-version: [3.5, 3.6, 3.7, 3.8]
+        os: [windows-latest, ubuntu-18.04, macos-latest]
+        exclude:
+          # Python 3.5 is unable to properly
+          # find the recent VS tooling
+          # https://bugs.python.org/issue30389
+          - os: windows-latest
+            python-version: 3.5
 
     steps:
     - uses: actions/checkout@v1
@@ -40,14 +46,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install Python Deps
-      if: steps.release.outputs.version == 0
-      run: |
-        pip install --upgrade setuptools pip wheel
-        pip download --dest=/tmp/deps .[test]
-        pip install -U --no-index --find-links=/tmp/deps /tmp/deps/*
-
     - name: Test
       if: steps.release.outputs.version == 0
       run: |
-        make debug && make test
+        pip install -e .
+        python setup.py test
