@@ -1,9 +1,9 @@
+import sys
 from typing import Any
 from typing import Generic
 from typing import Hashable
 from typing import Iterable
 from typing import Iterator
-from typing import Literal
 from typing import Mapping
 from typing import MutableMapping
 from typing import NoReturn
@@ -12,6 +12,11 @@ from typing import Tuple
 from typing import Type
 from typing import TypeVar
 from typing import Union
+
+if sys.version_info < (3, 8):
+    from typing_extensions import Literal
+else:
+    from typing import Literal
 
 
 K = TypeVar('K', bound=Hashable)

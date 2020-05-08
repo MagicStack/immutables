@@ -71,6 +71,7 @@ setuptools.setup(
     package_data={"immutables": ["py.typed", "*.pyi"]},
     provides=['immutables'],
     include_package_data=True,
+    install_requires=["typing-extensions; python_version<'3.8'"],
     ext_modules=ext_modules,
     test_suite='tests.suite',
 )
