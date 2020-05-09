@@ -1436,20 +1436,15 @@ class BaseMapTest:
     def test_map_is_subscriptable(self):
         self.assertIs(self.Map[int, str], self.Map)
 
-
-class PyMapTest(BaseMapTest, unittest.TestCase):
-
-    Map = PyMap
-
-    # TODO:
-    #   1. Make `test_kwarg_named_col` test pass.
-    #   2. Remove `test_kwarg_named_col` from `PyMapTest` and `CMapTest`.
-    #      Move it to `BaseMapTest`.
-    @unittest.expectedFailure
     def test_kwarg_named_col(self):
         self.assertEqual(dict(self.Map(col=0)), {"col": 0})
         self.assertEqual(dict(self.Map(a=0, col=1)), {"a": 0, "col": 1})
         self.assertEqual(dict(self.Map({"a": 0}, col=1)), {"a": 0, "col": 1})
+
+
+class PyMapTest(BaseMapTest, unittest.TestCase):
+
+    Map = PyMap
 
 
 try:
@@ -1462,11 +1457,6 @@ except ImportError:
 class CMapTest(BaseMapTest, unittest.TestCase):
 
     Map = CMap
-
-    def test_kwarg_named_col(self):
-        self.assertEqual(dict(self.Map(col=0)), {"col": 0})
-        self.assertEqual(dict(self.Map(a=0, col=1)), {"a": 0, "col": 1})
-        self.assertEqual(dict(self.Map({"a": 0}, col=1)), {"a": 0, "col": 1})
 
 
 if __name__ == "__main__":
