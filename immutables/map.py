@@ -740,8 +740,7 @@ class MapMutation:
                 it = iter(kw.items())
 
         if it is None:
-
-            return self
+            return
 
         root = self.__root
         count = self.__count
