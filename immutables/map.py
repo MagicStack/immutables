@@ -440,7 +440,8 @@ class Map:
             col = args[0]
         else:
             raise TypeError(
-                "immutables.Map expected at most 1 arguments, got {}".format(len(args))
+                "immutables.Map expected at most 1 arguments, "
+                "got {}".format(len(args))
             )
 
         self.__count = 0
