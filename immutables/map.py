@@ -440,7 +440,7 @@ class Map:
             col = args[0]
         else:
             raise TypeError(
-                "Map expected at most 1 argument, got {}".format(len(args))
+                "immutables.Map expected at most 1 arguments, got {}".format(len(args))
             )
 
         self.__count = 0
@@ -499,7 +499,7 @@ class Map:
             col = args[0]
         else:
             raise TypeError(
-                "update expected at most 1 argument, got {}".format(len(args))
+                "update expected at most 1 arguments, got {}".format(len(args))
             )
 
         it = None
@@ -747,7 +747,7 @@ class MapMutation:
             col = args[0]
         else:
             raise TypeError(
-                "update expected at most 1 argument, got {}".format(len(args))
+                "update expected at most 1 arguments, got {}".format(len(args))
             )
 
         if self.__mutid == 0:
