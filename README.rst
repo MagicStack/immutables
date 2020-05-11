@@ -1,11 +1,8 @@
 immutables
 ==========
 
-.. image:: https://travis-ci.org/MagicStack/immutables.svg?branch=master
-    :target: https://travis-ci.org/MagicStack/immutables
-
-.. image:: https://ci.appveyor.com/api/projects/status/tgbc6tq56u63qqhf?svg=true
-    :target: https://ci.appveyor.com/project/MagicStack/immutables
+.. image:: https://github.com/MagicStack/immutables/workflows/Tests/badge.svg?branch=master
+    :target: https://github.com/MagicStack/immutables/actions?query=workflow%3ATests+branch%3Amaster
 
 .. image:: https://img.shields.io/pypi/v/immutables.svg
     :target: https://pypi.python.org/pypi/immutables
