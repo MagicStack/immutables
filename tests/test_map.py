@@ -1436,6 +1436,11 @@ class BaseMapTest:
     def test_map_is_subscriptable(self):
         self.assertIs(self.Map[int, str], self.Map)
 
+    def test_kwarg_named_col(self):
+        self.assertEqual(dict(self.Map(col=0)), {"col": 0})
+        self.assertEqual(dict(self.Map(a=0, col=1)), {"a": 0, "col": 1})
+        self.assertEqual(dict(self.Map({"a": 0}, col=1)), {"a": 0, "col": 1})
+
 
 class PyMapTest(BaseMapTest, unittest.TestCase):
 
