@@ -440,7 +440,17 @@ class MapItems:
 
 class Map:
 
-    def __init__(self, col=None, **kw):
+    def __init__(self, *args, **kw):
+        if not args:
+            col = None
+        elif len(args) == 1:
+            col = args[0]
+        else:
+            raise TypeError(
+                "immutables.Map expected at most 1 arguments, "
+                "got {}".format(len(args))
+            )
+
         self.__count = 0
         self.__root = BitmapNode(0, 0, [], 0)
         self.__hash = -1
@@ -490,8 +500,18 @@ class Map:
 
         return True
 
-    def update(self, col=None, **kw):
+    def update(self, *args, **kw):
+        if not args:
+            col = None
+        elif len(args) == 1:
+            col = args[0]
+        else:
+            raise TypeError(
+                "update expected at most 1 arguments, got {}".format(len(args))
+            )
+
         it = None
+
         if col is not None:
             if hasattr(col, 'items'):
                 it = iter(col.items())
@@ -728,7 +748,16 @@ class MapMutation:
         else:
             return True
 
-    def update(self, col=None, **kw):
+    def update(self, *args, **kw):
+        if not args:
+            col = None
+        elif len(args) == 1:
+            col = args[0]
+        else:
+            raise TypeError(
+                "update expected at most 1 arguments, got {}".format(len(args))
+            )
+
         if self.__mutid == 0:
             raise ValueError('mutation {!r} has been finished'.format(self))
 
@@ -747,8 +776,7 @@ class MapMutation:
                 it = iter(kw.items())
 
         if it is None:
-
-            return self
+            return
 
         root = self.__root
         count = self.__count

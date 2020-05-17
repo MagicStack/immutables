@@ -50,6 +50,7 @@ setuptools.setup(
     version=VERSION,
     description='Immutable Collections',
     long_description=readme,
+    python_requires='>=3.5',
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
         'Intended Audience :: Developers',
