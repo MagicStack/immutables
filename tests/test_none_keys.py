@@ -1,6 +1,6 @@
 import unittest
 
-from immutables.map import map_hash, map_mask, _NULL, Map as PyMap
+from immutables.map import map_hash, map_mask, Map as PyMap
 from tests.test_map import HashKey
 
 
@@ -19,11 +19,10 @@ none_collisions = [h | (not_collision & (mask << shift))
 
 
 class NoneCollision(HashKey):
-    def __init__(self, name, level, *, error_on_eq_to=_NULL):
+    def __init__(self, name, level):
         if name is None:
             raise ValueError("Can't have a NoneCollision with a None value")
-        super().__init__(none_collisions[level], name,
-                         error_on_eq_to=error_on_eq_to)
+        super().__init__(none_collisions[level], name)
 
     def __eq__(self, other):
         if other is None:
