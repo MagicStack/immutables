@@ -46,6 +46,13 @@ def map_bitindex(bitmap, bit):
 W_EMPTY, W_NEWNODE, W_NOT_FOUND = range(3)
 void = object()
 
+class _Unhashable:
+    __slots__ = ()
+    __hash__ = None
+
+_NULL = _Unhashable()
+del _Unhashable
+
 
 class BitmapNode:
 
@@ -70,7 +77,7 @@ class BitmapNode:
             key_or_null = self.array[key_idx]
             val_or_node = self.array[val_idx]
 
-            if key_or_null is None:
+            if key_or_null is _NULL:
                 sub_node, added = val_or_node.assoc(
                     shift + 5, hash, key, val, mutid)
                 if val_or_node is sub_node:
@@ -111,12 +118,12 @@ class BitmapNode:
                     mutid)
 
             if mutid and mutid == self.mutid:
-                self.array[key_idx] = None
+                self.array[key_idx] = _NULL
                 self.array[val_idx] = sub_node
                 return self, True
             else:
                 ret = self.clone(mutid)
-                ret.array[key_idx] = None
+                ret.array[key_idx] = _NULL
                 ret.array[val_idx] = sub_node
                 return ret, True
 
@@ -153,7 +160,7 @@ class BitmapNode:
         key_or_null = self.array[key_idx]
         val_or_node = self.array[val_idx]
 
-        if key_or_null is None:
+        if key_or_null is _NULL:
             return val_or_node.find(shift + 5, hash, key)
 
         if key == key_or_null:
@@ -173,7 +180,7 @@ class BitmapNode:
         key_or_null = self.array[key_idx]
         val_or_node = self.array[val_idx]
 
-        if key_or_null is None:
+        if key_or_null is _NULL:
             res, sub_node = val_or_node.without(shift + 5, hash, key, mutid)
 
             if res is W_EMPTY:
@@ -182,7 +189,7 @@ class BitmapNode:
             elif res is W_NEWNODE:
                 if (type(sub_node) is BitmapNode and
                         sub_node.size == 2 and
-                        sub_node.array[0] is not None):
+                        sub_node.array[0] is not _NULL):
 
                     if mutid and mutid == self.mutid:
                         self.array[key_idx] = sub_node.array[0]
@@ -231,7 +238,7 @@ class BitmapNode:
         for i in range(0, self.size, 2):
             key_or_null = self.array[i]
 
-            if key_or_null is None:
+            if key_or_null is _NULL:
                 val_or_node = self.array[i + 1]
                 yield from val_or_node.keys()
             else:
@@ -242,7 +249,7 @@ class BitmapNode:
             key_or_null = self.array[i]
             val_or_node = self.array[i + 1]
 
-            if key_or_null is None:
+            if key_or_null is _NULL:
                 yield from val_or_node.values()
             else:
                 yield val_or_node
@@ -252,7 +259,7 @@ class BitmapNode:
             key_or_null = self.array[i]
             val_or_node = self.array[i + 1]
 
-            if key_or_null is None:
+            if key_or_null is _NULL:
                 yield from val_or_node.items()
             else:
                 yield key_or_null, val_or_node
@@ -269,8 +276,8 @@ class BitmapNode:
 
             pad = '    ' * (level + 2)
 
-            if key_or_null is None:
-                buf.append(pad + 'None:')
+            if key_or_null is _NULL:
+                buf.append(pad + 'NULL:')
                 val_or_node.dump(buf, level + 2)
             else:
                 buf.append(pad + '{!r}: {!r}'.format(key_or_null, val_or_node))
@@ -328,7 +335,7 @@ class CollisionNode:
 
         else:
             new_node = BitmapNode(
-                2, map_bitpos(self.hash, shift), [None, self], mutid)
+                2, map_bitpos(self.hash, shift), [_NULL, self], mutid)
             return new_node.assoc(shift, hash, key, val, mutid)
 
     def without(self, shift, hash, key, mutid):
