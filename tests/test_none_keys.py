@@ -1,7 +1,7 @@
 import unittest
 
 from immutables.map import map_hash, map_mask, Map as PyMap
-from tests.test_map import HashKey
+from immutables._testutils import *  # NoQA
 
 
 none_hash = map_hash(None)
