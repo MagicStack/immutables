@@ -49,5 +49,7 @@ jobs:
     - name: Test
       if: steps.release.outputs.version == 0
       run: |
+        pip install flake8==3.8.2
+        flake8 immutables/
         pip install -e .
         python -m unittest -v tests.suite
