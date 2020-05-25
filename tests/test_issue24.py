@@ -51,7 +51,7 @@ class Issue24Base:
         d = m.__dump__().splitlines()
         self.assertTrue(d)
         if d[0].startswith('HAMT'):
-            header = d[1] # skip _map.Map.__dump__() header
+            header = d[1]  # skip _map.Map.__dump__() header
         else:
             header = d[0]
         self.dump_check_bitmap_node_count(header, 7)
@@ -66,7 +66,7 @@ class Issue24Base:
         d = m2.__dump__().splitlines()
         self.assertTrue(d)
         if d[0].startswith('HAMT'):
-            header = d[1] # skip _map.Map.__dump__() header
+            header = d[1]  # skip _map.Map.__dump__() header
         else:
             header = d[0]
         self.dump_check_bitmap_node_count(header, 4)
@@ -79,7 +79,7 @@ class Issue24Base:
         self.assertTrue(len(d) > 3)
         # get node headers
         if d[0].startswith('HAMT'):
-            h1, h2 = d[1], d[3] # skip _map.Map.__dump__() header
+            h1, h2 = d[1], d[3]  # skip _map.Map.__dump__() header
         else:
             h1, h2 = d[0], d[2]
         self.dump_check_node_kind(h1, 'Bitmap')
@@ -96,11 +96,12 @@ class Issue24Base:
         self.assertTrue(len(d) > 3)
         # get node headers
         if d[0].startswith('HAMT'):
-            h1, h2 = d[1], d[3] # skip _map.Map.__dump__() header
+            h1, h2 = d[1], d[3]  # skip _map.Map.__dump__() header
         else:
             h1, h2 = d[0], d[2]
         self.dump_check_node_kind(h1, 'Bitmap')
         self.dump_check_collision_node_count(h2, 4)
+
 
 try:
     from immutables._map import Map as CMap
