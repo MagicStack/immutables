@@ -1,6 +1,5 @@
-#include "pythoncapi_compat.h"
-
 #include <stddef.h> /* For offsetof */
+#include "pythoncapi_compat.h"
 #include "_map.h"
 
 
