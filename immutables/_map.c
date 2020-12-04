@@ -1,3 +1,5 @@
+#include "pythoncapi_compat.h"
+
 #include <stddef.h> /* For offsetof */
 #include "_map.h"
 
@@ -571,7 +573,7 @@ map_node_bitmap_new(Py_ssize_t size, uint64_t mutid)
         return NULL;
     }
 
-    Py_SIZE(node) = size;
+    Py_SET_SIZE(node, size);
 
     for (i = 0; i < size; i++) {
         node->b_array[i] = NULL;
@@ -1356,7 +1358,7 @@ map_node_collision_new(int32_t hash, Py_ssize_t size, uint64_t mutid)
         node->c_array[i] = NULL;
     }
 
-    Py_SIZE(node) = size;
+    Py_SET_SIZE(node, size);
     node->c_hash = hash;
 
     node->c_mutid = mutid;
