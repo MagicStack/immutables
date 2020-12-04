@@ -1,4 +1,5 @@
-// Header file providing new functions of the Python C API to Python 3.6.
+// Header file providing new functions of the Python C API to old Python
+// versions.
 //
 // File distributed under the MIT license.
 //
@@ -84,8 +85,9 @@ _Py_SET_SIZE(PyVarObject *ob, Py_ssize_t size)
 static inline PyCodeObject*
 PyFrame_GetCode(PyFrameObject *frame)
 {
+    PyCodeObject *code;
     assert(frame != NULL);
-    PyCodeObject *code = frame->f_code;
+    code = frame->f_code;
     assert(code != NULL);
     Py_INCREF(code);
     return code;
@@ -106,8 +108,9 @@ _PyFrame_GetCodeBorrow(PyFrameObject *frame)
 static inline PyFrameObject*
 PyFrame_GetBack(PyFrameObject *frame)
 {
+    PyFrameObject *back;
     assert(frame != NULL);
-    PyFrameObject *back = frame->f_back;
+    back = frame->f_back;
     Py_XINCREF(back);
     return back;
 }
@@ -138,8 +141,9 @@ PyThreadState_GetInterpreter(PyThreadState *tstate)
 static inline PyFrameObject*
 PyThreadState_GetFrame(PyThreadState *tstate)
 {
+    PyFrameObject *frame;
     assert(tstate != NULL);
-    PyFrameObject *frame = tstate->frame;
+    frame = tstate->frame;
     Py_XINCREF(frame);
     return frame;
 }
@@ -159,11 +163,14 @@ _PyThreadState_GetFrameBorrow(PyThreadState *tstate)
 static inline PyInterpreterState *
 PyInterpreterState_Get(void)
 {
-    PyThreadState *tstate = PyThreadState_GET();
+    PyThreadState *tstate;
+    PyInterpreterState *interp;
+
+    tstate = PyThreadState_GET();
     if (tstate == NULL) {
         Py_FatalError("GIL released (tstate is NULL)");
     }
-    PyInterpreterState *interp = tstate->interp;
+    interp = tstate->interp;
     if (interp == NULL) {
         Py_FatalError("no current interpreter");
     }
@@ -209,14 +216,16 @@ PyObject_CallOneArg(PyObject *func, PyObject *arg)
 static inline int
 PyModule_AddType(PyObject *module, PyTypeObject *type)
 {
+    const char *name, *dot;
+
     if (PyType_Ready(type) < 0) {
         return -1;
     }
 
     // inline _PyType_Name()
-    const char *name = type->tp_name;
+    name = type->tp_name;
     assert(name != NULL);
-    const char *dot = strrchr(name, '.');
+    dot = strrchr(name, '.');
     if (dot != NULL) {
         name = dot + 1;
     }
@@ -232,21 +241,25 @@ PyModule_AddType(PyObject *module, PyTypeObject *type)
 #endif
 
 
-// bpo-40241 added PyObject_GC_IsTracked() and PyObject_GC_IsFinalized()
-// to Python 3.9.0a6
+// bpo-40241 added PyObject_GC_IsTracked() to Python 3.9.0a6.
+// bpo-4688 added _PyObject_GC_IS_TRACKED() to Python 2.7.0a2.
 #if PY_VERSION_HEX < 0x030900A6
 static inline int
 PyObject_GC_IsTracked(PyObject* obj)
 {
     return (PyObject_IS_GC(obj) && _PyObject_GC_IS_TRACKED(obj));
 }
+#endif
 
+// bpo-40241 added PyObject_GC_IsFinalized() to Python 3.9.0a6.
+// bpo-18112 added _PyGCHead_FINALIZED() to Python 3.4.0 final.
+#if PY_VERSION_HEX < 0x030900A6 && PY_VERSION_HEX >= 0x030400F0
 static inline int
 PyObject_GC_IsFinalized(PyObject *obj)
 {
     return (PyObject_IS_GC(obj) && _PyGCHead_FINALIZED((PyGC_Head *)(obj)-1));
 }
-#endif  // PY_VERSION_HEX < 0x030900A6
+#endif
 
 
 // bpo-39573 added Py_IS_TYPE() to Python 3.9.0a4
