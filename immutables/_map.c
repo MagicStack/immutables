@@ -3194,14 +3194,14 @@ map_py_repr(BaseMapObject *m)
 
     if (MapMutation_Check(m)) {
         if (_PyUnicodeWriter_WriteASCIIString(
-                &writer, "MapMutation({", 13) < 0)
+                &writer, "immutables.MapMutation({", 24) < 0)
         {
             goto error;
         }
     }
     else {
         if (_PyUnicodeWriter_WriteASCIIString(
-                &writer, "Map({", 5) < 0)
+                &writer, "immutables.Map({", 16) < 0)
         {
             goto error;
         }

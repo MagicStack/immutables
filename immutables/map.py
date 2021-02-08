@@ -649,7 +649,7 @@ class Map:
         items = []
         for key, val in self.items():
             items.append("{!r}: {!r}".format(key, val))
-        return 'Map({{{}}})'.format(', '.join(items))
+        return 'immutables.Map({{{}}})'.format(', '.join(items))
 
     def __dump__(self):  # pragma: no cover
         buf = []
@@ -817,7 +817,7 @@ class MapMutation:
         items = []
         for key, val in self.__root.items():
             items.append("{!r}: {!r}".format(key, val))
-        return 'MapMutation({{{}}})'.format(', '.join(items))
+        return 'immutables.MapMutation({{{}}})'.format(', '.join(items))
 
     def __len__(self):
         return self.__count

@@ -845,10 +845,10 @@ class BaseMapTest:
 
     def test_repr_1(self):
         h = self.Map()
-        self.assertEqual(repr(h), 'Map({})')
+        self.assertEqual(repr(h), 'immutables.Map({})')
 
         h = h.set(1, 2).set(2, 3).set(3, 4)
-        self.assertEqual(repr(h), 'Map({1: 2, 2: 3, 3: 4})')
+        self.assertEqual(repr(h), 'immutables.Map({1: 2, 2: 3, 3: 4})')
 
     def test_repr_2(self):
         h = self.Map()
@@ -878,7 +878,7 @@ class BaseMapTest:
         h = h.set(k, 1)
         k.val = h
 
-        self.assertEqual(repr(h), 'Map({{...}: 1})')
+        self.assertEqual(repr(h), 'immutables.Map({{...}: 1})')
 
     def test_hash_1(self):
         h = self.Map()
@@ -962,7 +962,7 @@ class BaseMapTest:
         h = h.set('a', 1)
         hm1 = h.mutate()
 
-        self.assertEqual(repr(hm1), "MapMutation({'a': 1})")
+        self.assertEqual(repr(hm1), "immutables.MapMutation({'a': 1})")
 
         with self.assertRaisesRegex(TypeError, 'unhashable type'):
             hash(hm1)
