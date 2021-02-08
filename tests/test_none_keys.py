@@ -61,7 +61,7 @@ class BaseNoneTest:
         self.assertEqual(len(m), 1)
         self.assertTrue(None in m)
         self.assertEqual(m[None], 1)
-        self.assertTrue(repr(m).startswith('<immutables.Map({None: 1}) at 0x'))
+        self.assertEqual(repr(m), 'Map({None: 1})')
 
         for level in range(7):
             key = NoneCollision('a', level)
@@ -72,7 +72,7 @@ class BaseNoneTest:
         m = m.delete(None)
         self.assertEqual(len(m), 0)
         self.assertFalse(None in m)
-        self.assertTrue(repr(m).startswith('<immutables.Map({}) at 0x'))
+        self.assertEqual(repr(m), 'Map({})')
 
         self.assertEqual(m, self.Map())
 
@@ -125,7 +125,7 @@ class BaseNoneTest:
             self.assertFalse(None in m3)
             self.assertFalse(key in m3)
             self.assertEqual(m3, self.Map())
-            self.assertTrue(repr(m3).startswith('<immutables.Map({}) at 0x'))
+            self.assertEqual(repr(m3), 'Map({})')
             with self.assertRaises(KeyError):
                 m3.delete(None)
             with self.assertRaises(KeyError):
@@ -144,7 +144,7 @@ class BaseNoneTest:
             self.assertFalse(None in m4)
             self.assertFalse(key in m4)
             self.assertEqual(m4, self.Map())
-            self.assertTrue(repr(m4).startswith('<immutables.Map({}) at 0x'))
+            self.assertEqual(repr(m4), 'Map({})')
             with self.assertRaises(KeyError):
                 m4.delete(None)
             with self.assertRaises(KeyError):
