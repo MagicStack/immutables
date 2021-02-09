@@ -50,4 +50,4 @@ jobs:
       if: steps.release.outputs.version == 0
       run: |
         pip install -e .
-        python setup.py test
+        python -m unittest -v tests.suite
