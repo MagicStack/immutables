@@ -73,5 +73,4 @@ setuptools.setup(
     provides=['immutables'],
     include_package_data=True,
     ext_modules=ext_modules,
-    test_suite='tests.suite',
 )
