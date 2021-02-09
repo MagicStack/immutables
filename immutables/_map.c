@@ -3194,14 +3194,14 @@ map_py_repr(BaseMapObject *m)
 
     if (MapMutation_Check(m)) {
         if (_PyUnicodeWriter_WriteASCIIString(
-                &writer, "<immutables.MapMutation({", 25) < 0)
+                &writer, "immutables.MapMutation({", 24) < 0)
         {
             goto error;
         }
     }
     else {
         if (_PyUnicodeWriter_WriteASCIIString(
-                &writer, "<immutables.Map({", 17) < 0)
+                &writer, "immutables.Map({", 16) < 0)
         {
             goto error;
         }
@@ -3254,16 +3254,6 @@ map_py_repr(BaseMapObject *m)
     if (_PyUnicodeWriter_WriteASCIIString(&writer, "})", 2) < 0) {
         goto error;
     }
-
-    PyObject *addr = PyUnicode_FromFormat(" at %p>", m);
-    if (addr == NULL) {
-        goto error;
-    }
-    if (_PyUnicodeWriter_WriteStr(&writer, addr) < 0) {
-        Py_DECREF(addr);
-        goto error;
-    }
-    Py_DECREF(addr);
 
     Py_ReprLeave((PyObject *)m);
     return _PyUnicodeWriter_Finish(&writer);
