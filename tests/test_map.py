@@ -7,7 +7,12 @@ import unittest
 import weakref
 
 from immutables.map import Map as PyMap
-from immutables._testutils import *  # NoQA
+from immutables._testutils import EqError
+from immutables._testutils import HashKey
+from immutables._testutils import HashKeyCrasher
+from immutables._testutils import HashingError
+from immutables._testutils import KeyStr
+from immutables._testutils import ReprError
 
 
 class BaseMapTest:
@@ -158,8 +163,6 @@ class BaseMapTest:
         #                                     <Key name:D hash:100100>: 'd'
         #                             <Key name:E hash:362244>: 'e'
         #     <Key name:B hash:101>: 'b'
-
-
 
     def test_map_stress_01(self):
         COLLECTION_SIZE = 7000
@@ -1235,7 +1238,6 @@ class BaseMapTest:
             # node to be converted into an array node
             h = h.set(HashKey(i, i), i)
 
-
         h = h.set(HashKey(18, '18-collision'), 18)
 
         with h.mutate() as m:
@@ -1348,7 +1350,9 @@ class BaseMapTest:
         with self.assertRaisesRegex(TypeError, "can('t|not) pickle"):
             pickle.dumps(h.mutate())
 
-    @unittest.skipIf(sys.version_info < (3, 7, 0), "__class_getitem__ is not available")
+    @unittest.skipIf(
+        sys.version_info < (3, 7, 0), "__class_getitem__ is not available"
+    )
     def test_map_is_subscriptable(self):
         self.assertIs(self.Map[int, str], self.Map)
 

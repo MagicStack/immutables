@@ -3,6 +3,19 @@ import platform
 import setuptools
 
 
+# Minimal dependencies required to test immutables.
+TEST_DEPENDENCIES = [
+    # pycodestyle is a dependency of flake8, but it must be frozen because
+    # their combination breaks too often
+    # (example breakage: https://gitlab.com/pycqa/flake8/issues/427)
+    'flake8~=3.8.4',
+    'pycodestyle~=2.6.0',
+]
+
+EXTRA_DEPENDENCIES = {
+    'test': TEST_DEPENDENCIES,
+}
+
 CFLAGS = ['-O2']
 if platform.uname().system != 'Windows':
     CFLAGS.extend(['-std=c99', '-fsigned-char', '-Wall',
@@ -73,4 +86,5 @@ setuptools.setup(
     provides=['immutables'],
     include_package_data=True,
     ext_modules=ext_modules,
+    extras_require=EXTRA_DEPENDENCIES,
 )

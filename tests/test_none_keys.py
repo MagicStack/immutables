@@ -1,7 +1,7 @@
 import unittest
 
 from immutables.map import map_hash, map_mask, Map as PyMap
-from immutables._testutils import *  # NoQA
+from immutables._testutils import HashKey
 
 
 none_hash = map_hash(None)
@@ -342,7 +342,7 @@ class BaseNoneTest:
         self.assertTrue(key4 in m3)
         self.assertEqual(m3[key2], 2)
         self.assertEqual(m3[key4], 4)
-        self.assertFalse(None in  m3)
+        self.assertFalse(None in m3)
         with self.assertRaises(KeyError):
             m3.delete(None)
 
@@ -352,7 +352,7 @@ class BaseNoneTest:
         self.assertTrue(key4 in m3)
         self.assertEqual(m3[None], 9)
         self.assertEqual(m3[key4], 4)
-        self.assertFalse(key2 in  m3)
+        self.assertFalse(key2 in m3)
         with self.assertRaises(KeyError):
             m3.delete(key2)
 
@@ -362,7 +362,7 @@ class BaseNoneTest:
         self.assertTrue(key2 in m3)
         self.assertEqual(m3[None], 9)
         self.assertEqual(m3[key2], 2)
-        self.assertFalse(key4 in  m3)
+        self.assertFalse(key4 in m3)
         with self.assertRaises(KeyError):
             m3.delete(key4)
 

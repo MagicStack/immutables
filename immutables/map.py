@@ -46,9 +46,11 @@ def map_bitindex(bitmap, bit):
 W_EMPTY, W_NEWNODE, W_NOT_FOUND = range(3)
 void = object()
 
+
 class _Unhashable:
     __slots__ = ()
     __hash__ = None
+
 
 _NULL = _Unhashable()
 del _Unhashable
