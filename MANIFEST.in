@@ -1,4 +1,4 @@
 recursive-include tests *.py
 recursive-include immutables *.py *.c *.h *.pyi
 include LICENSE* NOTICE README.rst bench.png
-include immutables/py.typed
+include mypy.ini immutables/py.typed

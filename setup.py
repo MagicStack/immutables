@@ -10,6 +10,7 @@ TEST_DEPENDENCIES = [
     # (example breakage: https://gitlab.com/pycqa/flake8/issues/427)
     'flake8~=3.8.4',
     'pycodestyle~=2.6.0',
+    'mypy>=0.800',
 ]
 
 EXTRA_DEPENDENCIES = {
@@ -86,5 +87,6 @@ setuptools.setup(
     provides=['immutables'],
     include_package_data=True,
     ext_modules=ext_modules,
+    install_requires=['typing-extensions>=3.7.4.3;python_version<"3.8"'],
     extras_require=EXTRA_DEPENDENCIES,
 )
