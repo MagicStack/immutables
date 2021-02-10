@@ -1,9 +1,14 @@
 # flake8: noqa
 
+from typing import TYPE_CHECKING
+
 try:
     from ._map import Map
 except ImportError:
-    from .map import Map
+    if TYPE_CHECKING:
+        from ._map import Map
+    else:
+        from .map import Map
 else:
     import collections.abc as _abc
     _abc.Mapping.register(Map)
