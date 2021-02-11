@@ -51,4 +51,5 @@ jobs:
       run: |
         pip install -e .[test]
         flake8 immutables/ tests/
+        mypy immutables/
         python -m unittest -v tests.suite
