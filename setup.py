@@ -66,6 +66,7 @@ setuptools.setup(
     python_requires='>=3.5',
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
+        'License :: OSI Approved :: MIT License',
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.5',
