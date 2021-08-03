@@ -10,19 +10,12 @@ on:
       - master
 
 jobs:
-  build:
+  tests:
     runs-on: ${{ matrix.os }}
     strategy:
-      max-parallel: 4
       matrix:
-        python-version: [3.6, 3.7, 3.8, 3.9]
-        os: [windows-latest, ubuntu-18.04, macos-latest]
-        exclude:
-          # Python 3.5 is unable to properly
-          # find the recent VS tooling
-          # https://bugs.python.org/issue30389
-          - os: windows-latest
-            python-version: 3.5
+        python-version: [3.6, 3.7, 3.8, 3.9, 3.10.0-beta.4]
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     steps:
     - uses: actions/checkout@v2
@@ -32,10 +25,10 @@ jobs:
 
     - name: Check if release PR.
       uses: edgedb/action-release/validate-pr@master
-      continue-on-error: true
       id: release
       with:
         github_token: ${{ secrets.RELEASE_BOT_GITHUB_TOKEN }}
+        missing_version_ok: yes
         version_file: immutables/_version.py
         version_line_pattern: |
           __version__\s*=\s*(?:['"])([[:PEP440:]])(?:['"])
@@ -53,3 +46,12 @@ jobs:
         flake8 immutables/ tests/
         mypy immutables/
         python -m pytest -v
+
+  # This job exists solely to act as the test job aggregate to be
+  # targeted by branch policies.
+  test-conclusion:
+    name: "Test Conclusion"
+    needs: [tests]
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo OK
