@@ -10,7 +10,8 @@ TEST_DEPENDENCIES = [
     # (example breakage: https://gitlab.com/pycqa/flake8/issues/427)
     'flake8~=3.8.4',
     'pycodestyle~=2.6.0',
-    'mypy>=0.800',
+    'mypy>=0.910',
+    'pytest~=6.2.4',
 ]
 
 EXTRA_DEPENDENCIES = {
