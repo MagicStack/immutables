@@ -14,7 +14,7 @@ debug:
 	DEBUG_IMMUTABLES=1 $(PYTHON) setup.py build_ext --inplace
 
 test:
-	$(PYTHON) -m unittest -v
+	$(PYTHON) -m pytest -v
 
 rtest:
 	~/dev/venvs/36-debug/bin/python setup.py build_ext --inplace

@@ -1,0 +1,73 @@
+[case testMypyImmu]
+# cmd: mypy test.py
+[file test.py]
+from immutables import Map
+from typing import Dict, Union, Any, cast
+
+def init() -> None:
+    def thing(m: Map[str, Union[str, int]]) -> None:
+        ...
+
+    thing(Map(foo=1))
+    thing(Map(foo='bar', baz=1))
+    thing(Map([('foo', 'bar'), ('bar', 1)]))
+    thing(Map(Map(foo=1), bar='foo'))
+    m = Map({1: 2})
+    thing(m)  # E: Argument 1 to "thing" has incompatible type "Map[int, int]"; expected "Map[str, Union[str, int]]"
+
+def assignments() -> None:
+    m_int__str = Map[int, str]()
+    m_str__str = Map[str, str]()
+    m_int_str__str = Map[Union[int, str], str]()
+    m_str__int_str = Map[str, Union[int, str]]()
+
+    m_int__str = m_str__str  # E: Incompatible types in assignment (expression has type "Map[str, str]", variable has type "Map[int, str]")
+    m_int__str = m_int_str__str  # E: Incompatible types in assignment (expression has type "Map[Union[int, str], str]", variable has type "Map[int, str]")
+    m_int__str = m_str__int_str  # E: Incompatible types in assignment (expression has type "Map[str, Union[int, str]]", variable has type "Map[int, str]")
+
+    m_str__str = m_int__str  # E: Incompatible types in assignment (expression has type "Map[int, str]", variable has type "Map[str, str]")
+    m_str__str = m_int_str__str  # E: Incompatible types in assignment (expression has type "Map[Union[int, str], str]", variable has type "Map[str, str]")
+    m_str__str = m_str__int_str  # E: Incompatible types in assignment (expression has type "Map[str, Union[int, str]]", variable has type "Map[str, str]")
+
+    m_int_str__str = m_int__str  # E: Incompatible types in assignment (expression has type "Map[int, str]", variable has type "Map[Union[int, str], str]")
+    m_int_str__str = m_str__str  # E: Incompatible types in assignment (expression has type "Map[str, str]", variable has type "Map[Union[int, str], str]")
+    m_int_str__str = m_str__int_str  # E: Incompatible types in assignment (expression has type "Map[str, Union[int, str]]", variable has type "Map[Union[int, str], str]")
+
+    m_str__int_str = m_int__str  # E: Incompatible types in assignment (expression has type "Map[int, str]", variable has type "Map[str, Union[int, str]]")
+    m_str__int_str = m_int_str__str  # E: Incompatible types in assignment (expression has type "Map[Union[int, str], str]", variable has type "Map[str, Union[int, str]]")
+    m_str__int_str = m_str__str
+
+def update() -> None:
+    m_int__str: Map[int, str] = Map()
+    m_str__str: Map[str, str] = Map()
+    m_int_str__str: Map[Union[int, str], str] = Map()
+    m_str__int_str: Map[str, Union[int, str]] = Map()
+
+    m_int__str.update({1: '2'})
+    m_int__str.update({1: '2'}, three='4')  # E: Unexpected keyword argument "three" for "update" of "Map"
+    m_int__str.update({1: 2})  # E: Argument 1 to "update" of "Map" has incompatible type "Dict[int, int]"; expected "Union[IterableItems[int, str], Iterable[Tuple[int, str]]]"
+
+    m_str__str.update({'1': '2'})
+    m_str__str.update({'1': '2'}, three='4')
+    m_str__str.update({'1': 2})  # E: Argument 1 to "update" of "Map" has incompatible type "Dict[str, int]"; expected "Union[IterableItems[str, str], Iterable[Tuple[str, str]]]"
+
+    m_int_str__str.update(cast(Dict[Union[int, str], str], {1: '2', '3': '4'}))
+    m_int_str__str.update({1: '2'}, three='4')
+    m_int_str__str.update({'1': 2})  # E: Argument 1 to "update" of "Map" has incompatible type "Dict[str, int]"; expected "Union[IterableItems[Union[int, str], str], Iterable[Tuple[Union[int, str], str]]]"
+
+    m_str__int_str.update({'1': 2, '2': 3})
+    m_str__int_str.update({'1': 2, '2': 3}, four='5')
+    m_str__int_str.update({1: 2})  # E: Argument 1 to "update" of "Map" has incompatible type "Dict[int, int]"; expected "Union[IterableItems[str, Union[int, str]], Iterable[Tuple[str, Union[int, str]]]]"
+
+def mutate() -> None:
+    m = Map[str, str]()
+
+    with m.mutate() as mm:
+        mm[0] = '1' # E: Invalid index type "int" for "MapMutation[str, str]"; expected type "str"
+        mm['1'] = 0  # E: Incompatible types in assignment (expression has type "int", target has type "str")
+        mm['1'] = '2'
+        del mm['1']
+        mm.set('3', '4')
+        m2 = mm.finish()
+
+    reveal_type(m2)  # N: Revealed type is "immutables._map.Map[builtins.str*, builtins.str*]"
