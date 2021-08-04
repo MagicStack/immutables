@@ -16,6 +16,13 @@ jobs:
       matrix:
         python-version: [3.6, 3.7, 3.8, 3.9, 3.10.0-beta.4]
         os: [windows-latest, ubuntu-latest, macos-latest]
+        arch: [x64, x86]
+        exclude:
+          # 32-bit Python is only available on Windows
+          - os: ubuntu-latest
+            arch: x86
+          - os: macos-latest
+            arch: x86
 
     steps:
     - uses: actions/checkout@v2
@@ -38,11 +45,12 @@ jobs:
       if: steps.release.outputs.version == 0
       with:
         python-version: ${{ matrix.python-version }}
+        architecture: ${{ matrix.arch }}
 
     - name: Test
       if: steps.release.outputs.version == 0
       run: |
-        pip install -e .[test]
+        pip install --verbose -e .[test]
         flake8 immutables/ tests/
         mypy immutables/
         python -m pytest -v

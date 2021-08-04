@@ -1,3 +1,4 @@
+import ctypes
 import unittest
 
 from immutables.map import map_hash, map_mask, Map as PyMap
@@ -6,16 +7,19 @@ from immutables._testutils import HashKey
 
 none_hash = map_hash(None)
 assert(none_hash != 1)
-assert((none_hash >> 32) == 0)
+assert(none_hash.bit_length() <= 32)
 
-not_collision = 0xffffffff & (~none_hash)
+none_hash_u = ctypes.c_size_t(none_hash).value
+not_collision = 0xffffffff & (~none_hash_u)
 
 mask = 0x7ffffffff
-none_collisions = [none_hash & (mask >> shift)
+none_collisions = [none_hash_u & (mask >> shift)
                    for shift in reversed(range(0, 32, 5))]
 assert(len(none_collisions) == 7)
-none_collisions = [h | (not_collision & (mask << shift))
-                   for shift, h in zip(range(5, 37, 5), none_collisions)]
+none_collisions = [
+    ctypes.c_ssize_t(h | (not_collision & (mask << shift))).value
+    for shift, h in zip(range(5, 37, 5), none_collisions)
+]
 
 
 class NoneCollision(HashKey):
