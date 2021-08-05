@@ -19,7 +19,10 @@ _mut_id = itertools.count(1).__next__
 
 def map_hash(o):
     x = hash(o)
-    return (x & 0xffffffff) ^ ((x >> 32) & 0xffffffff)
+    if sys.hash_info.width > 32:
+        return (x & 0xffffffff) ^ ((x >> 32) & 0xffffffff)
+    else:
+        return x
 
 
 def map_mask(hash, shift):
