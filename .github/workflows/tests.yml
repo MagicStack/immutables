@@ -43,6 +43,8 @@ jobs:
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       if: steps.release.outputs.version == 0
+      env:
+        PIP_DISABLE_PIP_VERSION_CHECK: 1
       with:
         python-version: ${{ matrix.python-version }}
         architecture: ${{ matrix.arch }}
