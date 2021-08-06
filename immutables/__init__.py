@@ -2,10 +2,7 @@
 
 import sys
 
-if sys.version_info >= (3, 5, 2):
-    from typing import TYPE_CHECKING
-else:
-    from typing_extensions import TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ._map import Map
