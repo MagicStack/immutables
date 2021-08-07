@@ -21,3 +21,4 @@ __pycache__/
 /.coverage
 /.mypy_cache
 /.venv*
+/wheelhouse
