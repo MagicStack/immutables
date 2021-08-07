@@ -12,7 +12,7 @@ An immutable mapping type for Python.
 The underlying datastructure is a Hash Array Mapped Trie (HAMT)
 used in Clojure, Scala, Haskell, and other functional languages.
 This implementation is used in CPython 3.7 in the ``contextvars``
-module (see `PEP 550 <https://www.python.org/dev/peps/pep-0550/>`_ and 
+module (see `PEP 550 <https://www.python.org/dev/peps/pep-0550/>`_ and
 `PEP 567 <https://www.python.org/dev/peps/pep-0567/>`_ for more details).
 
 Immutable mappings based on HAMT have O(log N) performance for both
@@ -30,7 +30,7 @@ copy-on-write approach (the benchmark code is available
 Installation
 ------------
 
-``immutables`` requires Python 3.5+ and is available on PyPI::
+``immutables`` requires Python 3.6+ and is available on PyPI::
 
     $ pip install immutables
 
