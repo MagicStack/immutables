@@ -4,3 +4,21 @@ requires-python = ">=3.6"
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--capture=no --assert=plain --strict-markers --tb=native --import-mode=importlib"
+testpaths = "tests"
+filterwarnings = "default"
+
+[tool.mypy]
+incremental = true
+strict = true
+
+[[tool.mypy.overrides]]
+module = "immutables.map"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "immutables._testutils"
+ignore_errors = true
