@@ -6,7 +6,7 @@ from immutables import lbst
 
 MAGIC = 100
 TREE_MAX_SIZE = random.randint(MAGIC, MAGIC * 100)
-INTEGER_MAX = random.randint(1, MAGIC * 10_000)
+INTEGER_MAX = random.randint(MAGIC, MAGIC * 10_000)
 
 
 def test_balanced_and_sorted_random_trees_of_positive_integers():
@@ -98,10 +98,10 @@ def test_faster_than_naive():
 
     start = time.perf_counter()
     make_lbst_tree(values)
-    lsbt_timing = time.perf_counter() - start
+    timing_lbst = time.perf_counter() - start
 
     start = time.perf_counter()
     make_naive(values)
-    naive_timing = time.perf_counter() - start
+    timing_naive = time.perf_counter() - start
 
-    assert lsbt_timing < naive_timing
+    assert timing_lbst < timing_naive

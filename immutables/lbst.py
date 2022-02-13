@@ -21,10 +21,7 @@ def make(comparator):
 
 
 def _node_weight(node):
-    if node is None:
-        return 0
-    else:
-        return node.weight
+    return node.weight
 
 
 def _is_less(a, b):
