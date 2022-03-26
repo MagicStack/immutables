@@ -15,6 +15,8 @@ else:
         import collections.abc as _abc
         _abc.Mapping.register(Map)
 
+from .list import List
+
 from ._protocols import MapKeys as MapKeys
 from ._protocols import MapValues as MapValues
 from ._protocols import MapItems as MapItems
@@ -22,4 +24,4 @@ from ._protocols import MapMutation as MapMutation
 
 from ._version import __version__
 
-__all__ = 'Map',
+__all__ = 'Map', 'List'
