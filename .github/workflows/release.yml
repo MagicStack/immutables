@@ -19,6 +19,8 @@ jobs:
       with:
         github_token: ${{ secrets.RELEASE_BOT_GITHUB_TOKEN }}
         version_file: immutables/_version.py
+        require_team: Release Managers
+        require_approval: no
         version_line_pattern: |
           __version__\s*=\s*(?:['"])([[:PEP440:]])(?:['"])
 
@@ -87,13 +89,11 @@ jobs:
       with:
         platforms: arm64
 
-    - uses: pypa/cibuildwheel@v2.0.1
+    - uses: pypa/cibuildwheel@v2.3.1
       env:
         CIBW_BUILD_VERBOSITY: 1
-        CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-*"
+        CIBW_BUILD: "cp36-* cp37-* cp38-* cp39-* cp310-*"
         CIBW_ARCHS: ${{ matrix.cibw_arch }}
-        CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux1_x86_64
-        CIBW_MANYLINUX_I686_IMAGE: quay.io/pypa/manylinux1_i686
         CIBW_SKIP: "pp*"
         CIBW_TEST_EXTRAS: "test"
         CIBW_TEST_COMMAND: "cd .. && python {project}/tests/__init__.py"
