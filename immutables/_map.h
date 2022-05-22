@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "Python.h"
 
-#define _Py_HAMT_MAX_TREE_DEPTH 7
+#define _Py_HAMT_MAX_TREE_DEPTH 8
 
 
 #define Map_Check(o) (Py_TYPE(o) == &_Map_Type)
