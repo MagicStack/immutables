@@ -254,6 +254,40 @@ class BaseMapTest:
             self.assertEqual(len(h), 0)
             self.assertEqual(list(h.items()), [])
 
+    def test_map_collision_3(self):
+        # Test that iteration works with the deepest tree possible.
+
+        C = HashKey(0b10000000_00000000_00000000_00000000, 'C')
+        D = HashKey(0b10000000_00000000_00000000_00000000, 'D')
+
+        E = HashKey(0b00000000_00000000_00000000_00000000, 'E')
+
+        h = self.Map()
+        h = h.set(C, 'C')
+        h = h.set(D, 'D')
+        h = h.set(E, 'E')
+
+        # BitmapNode(size=2 count=1 bitmap=0b1):
+        #   NULL:
+        #     BitmapNode(size=2 count=1 bitmap=0b1):
+        #       NULL:
+        #         BitmapNode(size=2 count=1 bitmap=0b1):
+        #           NULL:
+        #             BitmapNode(size=2 count=1 bitmap=0b1):
+        #               NULL:
+        #                 BitmapNode(size=2 count=1 bitmap=0b1):
+        #                   NULL:
+        #                     BitmapNode(size=2 count=1 bitmap=0b1):
+        #                       NULL:
+        #                         BitmapNode(size=4 count=2 bitmap=0b101):
+        #                           <Key name:E hash:0>: 'E'
+        #                           NULL:
+        #                             CollisionNode(size=4 id=0x107a24520):
+        #                               <Key name:C hash:2147483648>: 'C'
+        #                               <Key name:D hash:2147483648>: 'D'
+
+        self.assertEqual({k.name for k in h.keys()}, {'C', 'D', 'E'})
+
     def test_map_stress_02(self):
         COLLECTION_SIZE = 20000
         TEST_ITERS_EVERY = 647
