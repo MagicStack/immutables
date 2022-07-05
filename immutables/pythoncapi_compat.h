@@ -406,6 +406,17 @@ PyFloat_Unpack2(const char *p, int le)
 #endif
 
 
+// bpo-39481 added Py_GenericAlias to Python 3.9.0a6.
+#if PY_VERSION_HEX < 0x030900A6 && !defined(Py_GenericAlias)
+PYCAPI_COMPAT_STATIC_INLINE(PyObject *)
+Py_GenericAlias(PyObject *type, PyObject *item)
+{
+    Py_INCREF(type);
+    return type;
+}
+#endif
+
+
 // bpo-46906 added PyFloat_Pack4(), PyFloat_Pack8(), PyFloat_Unpack4() and
 // PyFloat_Unpack8() to Python 3.11a7.
 // Python 3.11a2 moved _PyFloat_Pack4(), _PyFloat_Pack8(), _PyFloat_Unpack4()
