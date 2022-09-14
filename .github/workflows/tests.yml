@@ -52,7 +52,8 @@ jobs:
     - name: Test
       if: steps.release.outputs.version == 0
       run: |
-        pip install --verbose -e .[test]
+        python -m pip install -U pip setuptools
+        python -m pip install --verbose -e .[test]
         flake8 immutables/ tests/
         mypy immutables/
         python -m pytest -v

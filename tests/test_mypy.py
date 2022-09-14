@@ -1,4 +1,5 @@
 import os
+import sys
 
 try:
     import mypy.test.testcmdline
@@ -20,7 +21,19 @@ else:
 
     this_file_dir = os.path.dirname(os.path.realpath(__file__))
     test_data_prefix = os.path.join(this_file_dir, 'test-data')
+    parent_dir = os.path.dirname(this_file_dir)
+
+    mypy_path = os.environ.get("MYPYPATH")
+    if mypy_path:
+        mypy_path = parent_dir + os.pathsep + mypy_path
+    else:
+        mypy_path = parent_dir
 
     class ImmuMypyTest(mypy.test.testcmdline.PythonCmdlineSuite):
         data_prefix = test_data_prefix
         files = ['check-immu.test']
+
+        def run_case(self, testcase):
+            if sys.version_info >= (3, 7):
+                os.environ["MYPYPATH"] = mypy_path
+            super().run_case(testcase)

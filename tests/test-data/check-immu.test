@@ -70,4 +70,4 @@ def mutate() -> None:
         mm.set('3', '4')
         m2 = mm.finish()
 
-    reveal_type(m2)  # N: Revealed type is "immutables._map.Map[builtins.str*, builtins.str*]"
+    reveal_type(m2)  # N: Revealed type is "immutables._map.Map[builtins.str, builtins.str]"
