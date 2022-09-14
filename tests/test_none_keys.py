@@ -6,8 +6,8 @@ from immutables._testutils import HashKey
 
 
 none_hash = map_hash(None)
-assert(none_hash != 1)
-assert(none_hash.bit_length() <= 32)
+assert none_hash != 1
+assert none_hash.bit_length() <= 32
 
 none_hash_u = ctypes.c_size_t(none_hash).value
 not_collision = 0xffffffff & (~none_hash_u)
@@ -15,7 +15,7 @@ not_collision = 0xffffffff & (~none_hash_u)
 mask = 0x7ffffffff
 none_collisions = [none_hash_u & (mask >> shift)
                    for shift in reversed(range(0, 32, 5))]
-assert(len(none_collisions) == 7)
+assert len(none_collisions) == 7
 none_collisions = [
     ctypes.c_ssize_t(h | (not_collision & (mask << shift))).value
     for shift, h in zip(range(5, 37, 5), none_collisions)
