@@ -3414,7 +3414,11 @@ PyTypeObject _Map_Type = {
     .tp_iter = (getiterfunc)map_tp_iter,
     .tp_dealloc = (destructor)map_tp_dealloc,
     .tp_getattro = PyObject_GenericGetAttr,
-    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC
+    #ifdef Py_TPFLAGS_MAPPING
+        | Py_TPFLAGS_MAPPING
+    #endif
+    ,
     .tp_richcompare = map_tp_richcompare,
     .tp_traverse = (traverseproc)map_tp_traverse,
     .tp_clear = (inquiry)map_tp_clear,
