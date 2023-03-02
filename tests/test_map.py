@@ -1395,6 +1395,10 @@ class BaseMapTest:
         self.assertEqual(dict(self.Map(a=0, col=1)), {"a": 0, "col": 1})
         self.assertEqual(dict(self.Map({"a": 0}, col=1)), {"a": 0, "col": 1})
 
+    def test_map_keys_contains(self):
+        m = self.Map(foo="bar")
+        self.assertTrue("foo" in m.keys())
+
 
 class PyMapTest(BaseMapTest, unittest.TestCase):
 
