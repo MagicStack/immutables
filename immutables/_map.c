@@ -3373,12 +3373,14 @@ map_reduce(MapObject *self)
     return tup;
 }
 
+#if PY_VERSION_HEX < 0x030900A6
 static PyObject *
 map_py_class_getitem(PyObject *type, PyObject *item)
 {
     Py_INCREF(type);
     return type;
 }
+#endif
 
 static PyMethodDef Map_methods[] = {
     {"set", (PyCFunction)map_py_set, METH_VARARGS, NULL},
@@ -3393,9 +3395,13 @@ static PyMethodDef Map_methods[] = {
     {"__dump__", (PyCFunction)map_py_dump, METH_NOARGS, NULL},
     {
         "__class_getitem__",
+#if PY_VERSION_HEX < 0x030900A6
         (PyCFunction)map_py_class_getitem,
+#else
+        Py_GenericAlias,
+#endif
         METH_O|METH_CLASS,
-        NULL
+        "See PEP 585"
     },
     {NULL, NULL}
 };

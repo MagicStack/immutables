@@ -1,3 +1,4 @@
+import sys
 from typing import Any
 from typing import Dict
 from typing import Generic
@@ -9,6 +10,9 @@ from typing import Tuple
 from typing import Type
 from typing import Union
 from typing import overload
+
+if sys.version_info >= (3, 9):
+    from types import GenericAlias
 
 from ._protocols import IterableItems
 from ._protocols import MapItems
@@ -70,4 +74,7 @@ class Map(Mapping[KT, VT_co]):
     def items(self) -> MapItems[KT, VT_co]: ...  # type: ignore[override]
     def __hash__(self) -> int: ...
     def __dump__(self) -> str: ...
-    def __class_getitem__(cls, item: Any) -> Type[Map[Any, Any]]: ...
+    if sys.version_info >= (3, 9):
+        def __class_getitem__(cls, item: Any) -> GenericAlias: ...
+    else:
+        def __class_getitem__(cls, item: Any) -> Type[Map[Any, Any]]: ...
