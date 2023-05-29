@@ -529,7 +529,7 @@ _map_dump_format(_PyUnicodeWriter *writer, const char *format, ...)
     int ret;
 
     va_list vargs;
-#ifdef HAVE_STDARG_PROTOTYPES
+#if defined(HAVE_STDARG_PROTOTYPES) || PY_VERSION_HEX >= 0x030C0000
     va_start(vargs, format);
 #else
     va_start(vargs);
