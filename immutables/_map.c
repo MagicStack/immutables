@@ -2810,9 +2810,23 @@ map_new_items_view(MapObject *o)
 /////////////////////////////////// _MapKeys_Type
 
 
+static int
+map_tp_contains(BaseMapObject *self, PyObject *key);
+
+static int
+_map_keys_tp_contains(MapView *self, PyObject *key)
+{
+	return map_tp_contains((BaseMapObject *)self->mv_obj, key);
+}
+
+static PySequenceMethods _MapKeys_as_sequence = {
+    .sq_contains = (objobjproc)_map_keys_tp_contains,
+};
+
 PyTypeObject _MapKeys_Type = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "keys",
+    .tp_as_sequence = &_MapKeys_as_sequence,
     VIEW_TYPE_SHARED_SLOTS
 };
 
