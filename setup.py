@@ -8,10 +8,10 @@ TEST_DEPENDENCIES = [
     # pycodestyle is a dependency of flake8, but it must be frozen because
     # their combination breaks too often
     # (example breakage: https://gitlab.com/pycqa/flake8/issues/427)
-    'flake8~=5.0.4',
-    'pycodestyle~=2.9.1',
-    'mypy==0.971',
-    'pytest~=6.2.4',
+    'flake8~=5.0',
+    'pycodestyle~=2.9',
+    'mypy~=1.4',
+    'pytest~=7.4',
 ]
 
 EXTRA_DEPENDENCIES = {
@@ -65,16 +65,16 @@ setuptools.setup(
     version=VERSION,
     description='Immutable Collections',
     long_description=readme,
-    python_requires='>=3.6',
+    python_requires='>=3.7',
     classifiers=[
         'License :: OSI Approved :: Apache Software License',
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3 :: Only',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
         'Operating System :: POSIX',
         'Operating System :: MacOS :: MacOS X',
         'Operating System :: Microsoft :: Windows',

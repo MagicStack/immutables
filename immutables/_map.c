@@ -529,10 +529,10 @@ _map_dump_format(_PyUnicodeWriter *writer, const char *format, ...)
     int ret;
 
     va_list vargs;
-#ifdef HAVE_STDARG_PROTOTYPES
-    va_start(vargs, format);
-#else
+#if PY_VERSION_HEX < 0x030C00A1 && !defined(HAVE_STDARG_PROTOTYPES)
     va_start(vargs);
+#else
+    va_start(vargs, format);
 #endif
     msg = PyUnicode_FromFormatV(format, vargs);
     va_end(vargs);
@@ -1247,7 +1247,7 @@ map_node_bitmap_dealloc(MapNode_Bitmap *self)
     Py_ssize_t i;
 
     PyObject_GC_UnTrack(self);
-    Py_TRASHCAN_SAFE_BEGIN(self)
+    Py_TRASHCAN_BEGIN(self, map_node_bitmap_dealloc)
 
     if (len > 0) {
         i = len;
@@ -1257,7 +1257,7 @@ map_node_bitmap_dealloc(MapNode_Bitmap *self)
     }
 
     Py_TYPE(self)->tp_free((PyObject *)self);
-    Py_TRASHCAN_SAFE_END(self)
+    Py_TRASHCAN_END
 }
 
 static int
@@ -1664,7 +1664,7 @@ map_node_collision_dealloc(MapNode_Collision *self)
     Py_ssize_t len = Py_SIZE(self);
 
     PyObject_GC_UnTrack(self);
-    Py_TRASHCAN_SAFE_BEGIN(self)
+    Py_TRASHCAN_BEGIN(self, map_node_collision_dealloc)
 
     if (len > 0) {
 
@@ -1674,7 +1674,7 @@ map_node_collision_dealloc(MapNode_Collision *self)
     }
 
     Py_TYPE(self)->tp_free((PyObject *)self);
-    Py_TRASHCAN_SAFE_END(self)
+    Py_TRASHCAN_END
 }
 
 static int
@@ -2083,14 +2083,14 @@ map_node_array_dealloc(MapNode_Array *self)
     Py_ssize_t i;
 
     PyObject_GC_UnTrack(self);
-    Py_TRASHCAN_SAFE_BEGIN(self)
+    Py_TRASHCAN_BEGIN(self, map_node_array_dealloc)
 
     for (i = 0; i < HAMT_ARRAY_NODE_SIZE; i++) {
         Py_XDECREF(self->a_array[i]);
     }
 
     Py_TYPE(self)->tp_free((PyObject *)self);
-    Py_TRASHCAN_SAFE_END(self)
+    Py_TRASHCAN_END
 }
 
 static int
