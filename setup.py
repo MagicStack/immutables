@@ -18,10 +18,16 @@ EXTRA_DEPENDENCIES = {
     'test': TEST_DEPENDENCIES,
 }
 
+system = platform.uname().system
 CFLAGS = ['-O2']
-if platform.uname().system != 'Windows':
-    CFLAGS.extend(['-std=c99', '-fsigned-char', '-Wall',
-                   '-Wsign-compare', '-Wconversion'])
+
+if system == 'AIX':
+    CFLAGS.extend(['-qlanglvl=stdc99', '-qchars'])
+elif system == 'SUNOS':
+    CFLAGS.extend(['-xc99']) # -xchar=s is the default
+elif system != 'Windows':
+     CFLAGS.extend(['-std=c99', '-fsigned-char', '-Wall',
+                    '-Wsign-compare', '-Wconversion'])
 
 
 with open(os.path.join(
