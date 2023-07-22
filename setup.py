@@ -24,10 +24,10 @@ CFLAGS = ['-O2']
 if system == 'AIX':
     CFLAGS.extend(['-qlanglvl=stdc99', '-qchars'])
 elif system == 'SUNOS':
-    CFLAGS.extend(['-xc99']) # -xchar=s is the default
+    CFLAGS.extend(['-xc99'])  # -xchar=s is the default
 elif system != 'Windows':
-     CFLAGS.extend(['-std=c99', '-fsigned-char', '-Wall',
-                    '-Wsign-compare', '-Wconversion'])
+    CFLAGS.extend(['-std=c99', '-fsigned-char', '-Wall',
+                   '-Wsign-compare', '-Wconversion'])
 
 
 with open(os.path.join(
