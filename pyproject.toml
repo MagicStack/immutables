@@ -1,6 +1,64 @@
+[project]
+name = "immutables"
+description = "Immutable Collections"
+authors = [{name = "MagicStack Inc", email = "hello@magic.io"}]
+readme = "README.rst"
+license = {text = "Apache License, Version 2.0"}
+dynamic = ["version"]
+keywords = [
+    "collections",
+    "immutable",
+    "hamt",
+]
+classifiers=[
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Operating System :: POSIX",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    'typing-extensions>=3.7.4.3;python_version<"3.8"',
+]
+
+[project.urls]
+github = "https://github.com/MagicStack/immutables"
+
+[project.optional-dependencies]
+# Minimal dependencies required to test immutables.
+# pycodestyle is a dependency of flake8, but it must be frozen because
+# their combination breaks too often
+# (example breakage: https://gitlab.com/pycqa/flake8/issues/427)
+test = [
+    'flake8~=5.0',
+    'pycodestyle~=2.9',
+    'mypy~=1.4',
+    'pytest~=7.4',
+]
+
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+zip-safe = false
+
+[tool.setuptools.packages.find]
+include = ["immutables", "immutables.*"]
+
+[tool.setuptools.package-data]
+immutables = ["py.typed", "*.pyi"]
+
+[tool.setuptools.exclude-package-data]
+"*" = ["*.c", "*.h"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
