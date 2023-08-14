@@ -1,3 +1,5 @@
+import sys
+import textwrap
 import unittest
 
 from immutables.map import Map as PyMap
@@ -7,14 +9,25 @@ class BaseMapTest:
 
     Map = None
 
+    @unittest.skipIf(
+        sys.version_info < (3, 10),
+        "pattern matching is not supported in this Python version",
+    )
     def test_map_can_be_matched(self):
-        match self.Map(a=1, b=2):  # noqa: E999
-            case {"a": 1 as matched}:
-                matched = matched
-            case _:
-                assert False
+        locals_ = dict(locals())
+        exec(
+            textwrap.dedent("""\
+            match self.Map(a=1, b=2):  # noqa: E999
+                case {"a": 1 as matched}:
+                    matched = matched
+                case _:
+                    assert False
 
-        assert matched == 1
+            self.assertEqual(matched, 1)
+            """),
+            globals(),
+            locals_,
+        )
 
 
 class PyMapTest(BaseMapTest, unittest.TestCase):
