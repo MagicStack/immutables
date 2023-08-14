@@ -2,6 +2,7 @@
 name = "immutables"
 description = "Immutable Collections"
 authors = [{name = "MagicStack Inc", email = "hello@magic.io"}]
+requires-python = '>=3.8.0'
 readme = "README.rst"
 license = {text = "Apache License, Version 2.0"}
 dynamic = ["version"]
@@ -78,3 +79,16 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = "immutables._testutils"
 ignore_errors = true
+
+[tool.cibuildwheel]
+build-frontend = "build"
+test-extras = "test"
+
+[tool.cibuildwheel.macos]
+test-command = "python {project}/tests/__init__.py"
+
+[tool.cibuildwheel.windows]
+test-command = "python {project}\\tests\\__init__.py"
+
+[tool.cibuildwheel.linux]
+test-command = "python {project}/tests/__init__.py"
