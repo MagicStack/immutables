@@ -1384,11 +1384,13 @@ class BaseMapTest:
         with self.assertRaisesRegex(TypeError, "can('t|not) pickle"):
             pickle.dumps(h.mutate())
 
-    @unittest.skipIf(
-        sys.version_info < (3, 7, 0), "__class_getitem__ is not available"
-    )
     def test_map_is_subscriptable(self):
-        self.assertIs(self.Map[int, str], self.Map)
+        if sys.version_info >= (3, 9):
+            with_args = self.Map[int, str]
+            self.assertIs(with_args.__origin__, self.Map)
+            self.assertEqual(with_args.__args__, (int, str))
+        else:
+            self.assertIs(self.Map[int, str], self.Map)
 
     def test_kwarg_named_col(self):
         self.assertEqual(dict(self.Map(col=0)), {"col": 0})
