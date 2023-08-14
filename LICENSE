@@ -4,4 +4,4 @@ LICENSE-APACHE for the full text of the license.
 Additionally, this software contains the following code distributed a
 different license (refer to the specific files for details):
 
-  immutables/pythoncapi_compat.h  (MIT License)
+  immutables/pythoncapi_compat.h  (0BSD License)
