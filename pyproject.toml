@@ -26,9 +26,7 @@ classifiers=[
     "Operating System :: Microsoft :: Windows",
     "Topic :: Software Development :: Libraries",
 ]
-dependencies = [
-    'typing-extensions>=3.7.4.3;python_version<"3.8"',
-]
+dependencies = []
 
 [project.urls]
 github = "https://github.com/MagicStack/immutables"
