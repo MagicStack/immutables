@@ -1301,6 +1301,8 @@ map_node_bitmap_traverse(MapNode_Bitmap *self, visitproc visit, void *arg)
 {
     /* Bitmap's tp_traverse */
 
+    Py_VISIT(Py_TYPE(self));
+
     Py_ssize_t i;
 
     for (i = Py_SIZE(self); --i >= 0; ) {
@@ -1729,6 +1731,8 @@ map_node_collision_traverse(MapNode_Collision *self,
 {
     /* Collision's tp_traverse */
 
+    Py_VISIT(Py_TYPE(self));
+
     Py_ssize_t i;
 
     for (i = Py_SIZE(self); --i >= 0; ) {
@@ -2153,6 +2157,8 @@ map_node_array_traverse(MapNode_Array *self,
                         visitproc visit, void *arg)
 {
     /* Array's tp_traverse */
+
+    Py_VISIT(Py_TYPE(self));
 
     Py_ssize_t i;
 
@@ -2766,6 +2772,7 @@ map_baseiter_tp_dealloc(MapIterator *it)
 static int
 map_baseiter_tp_traverse(MapIterator *it, visitproc visit, void *arg)
 {
+    Py_VISIT(Py_TYPE(it));
     Py_VISIT(it->mi_obj);
     return 0;
 }
@@ -2812,6 +2819,7 @@ map_baseview_tp_dealloc(MapView *view)
 static int
 map_baseview_tp_traverse(MapView *view, visitproc visit, void *arg)
 {
+    Py_VISIT(Py_TYPE(view));
     Py_VISIT(view->mv_obj);
     return 0;
 }
@@ -3123,6 +3131,7 @@ map_tp_clear(BaseMapObject *self)
 static int
 map_tp_traverse(BaseMapObject *self, visitproc visit, void *arg)
 {
+    Py_VISIT(Py_TYPE(self));
     Py_VISIT(self->b_root);
     return 0;
 }
