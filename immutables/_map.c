@@ -1317,6 +1317,8 @@ map_node_bitmap_dealloc(MapNode_Bitmap *self)
 {
     /* Bitmap's tp_dealloc */
 
+    PyTypeObject *tp = Py_TYPE(self);
+
     Py_ssize_t len = Py_SIZE(self);
     Py_ssize_t i;
 
@@ -1330,8 +1332,10 @@ map_node_bitmap_dealloc(MapNode_Bitmap *self)
         }
     }
 
-    Py_TYPE(self)->tp_free((PyObject *)self);
+    PyObject_GC_Del(self);
     Py_TRASHCAN_END
+
+    Py_DECREF(tp);
 }
 
 static int
@@ -1747,6 +1751,8 @@ map_node_collision_dealloc(MapNode_Collision *self)
 {
     /* Collision's tp_dealloc */
 
+    PyTypeObject *tp = Py_TYPE(self);
+
     Py_ssize_t len = Py_SIZE(self);
 
     PyObject_GC_UnTrack(self);
@@ -1759,8 +1765,10 @@ map_node_collision_dealloc(MapNode_Collision *self)
         }
     }
 
-    Py_TYPE(self)->tp_free((PyObject *)self);
+    PyObject_GC_Del(self);
     Py_TRASHCAN_END
+
+    Py_DECREF(tp);
 }
 
 static int
@@ -2174,6 +2182,8 @@ map_node_array_dealloc(MapNode_Array *self)
 {
     /* Array's tp_dealloc */
 
+    PyTypeObject *tp = Py_TYPE(self);
+
     Py_ssize_t i;
 
     PyObject_GC_UnTrack(self);
@@ -2183,8 +2193,10 @@ map_node_array_dealloc(MapNode_Array *self)
         Py_XDECREF(self->a_array[i]);
     }
 
-    Py_TYPE(self)->tp_free((PyObject *)self);
+    PyObject_GC_Del(self);
     Py_TRASHCAN_END
+
+    Py_DECREF(tp);
 }
 
 static int
@@ -2764,9 +2776,11 @@ map_baseiter_tp_clear(MapIterator *it)
 static void
 map_baseiter_tp_dealloc(MapIterator *it)
 {
+    PyTypeObject *tp = Py_TYPE(it);
     PyObject_GC_UnTrack(it);
     (void)map_baseiter_tp_clear(it);
     PyObject_GC_Del(it);
+    Py_DECREF(tp);
 }
 
 static int
@@ -2811,9 +2825,11 @@ map_baseview_tp_clear(MapView *view)
 static void
 map_baseview_tp_dealloc(MapView *view)
 {
+    PyTypeObject *tp = Py_TYPE(view);
     PyObject_GC_UnTrack(view);
     (void)map_baseview_tp_clear(view);
     PyObject_GC_Del(view);
+    Py_DECREF(tp);
 }
 
 static int
@@ -3139,10 +3155,12 @@ map_tp_traverse(BaseMapObject *self, visitproc visit, void *arg)
 static void
 map_tp_dealloc(BaseMapObject *self)
 {
+    PyTypeObject *tp = Py_TYPE(self);
     PyObject_GC_UnTrack(self);
     PyObject_ClearWeakRefs((PyObject*)self);
     (void)map_tp_clear(self);
-    Py_TYPE(self)->tp_free(self);
+    PyObject_GC_Del(self);
+    Py_DECREF(tp);
 }
 
 
