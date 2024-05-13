@@ -27,7 +27,8 @@ with open(os.path.join(
             'unable to read the version from immutables/_version.py')
 
 
-if platform.python_implementation() == 'CPython':
+if (platform.python_implementation() == 'CPython' and
+        os.environ.get('IMMUTABLES_EXT', '1') == '1'):
     if os.environ.get("DEBUG_IMMUTABLES") == '1':
         define_macros = []
         undef_macros = ['NDEBUG']
