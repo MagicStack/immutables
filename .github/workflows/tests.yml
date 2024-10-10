@@ -23,6 +23,16 @@ jobs:
             arch: x86
           - os: macos-latest
             arch: x86
+          # https://github.com/actions/setup-python/issues/948
+          - os: macos-latest
+            arch: x64
+            python-version: 3.8
+          - os: macos-latest
+            arch: x64
+            python-version: 3.9
+          - os: macos-latest
+            arch: x64
+            python-version: 3.10
 
     steps:
     - uses: actions/checkout@v4
