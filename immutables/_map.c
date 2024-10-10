@@ -1284,7 +1284,7 @@ map_node_bitmap_dump(MapNode_Bitmap *node,
     if (tmp1 == NULL) {
         goto error;
     }
-    tmp2 = _PyLong_Format(tmp1, 2);
+    tmp2 = PyNumber_ToBase(tmp1, 2);
     Py_DECREF(tmp1);
     if (tmp2 == NULL) {
         goto error;

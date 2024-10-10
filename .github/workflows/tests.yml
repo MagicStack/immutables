@@ -14,7 +14,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12.0-beta.4"]
+        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
         os: [windows-latest, ubuntu-latest, macos-latest]
         arch: [x64, x86]
         exclude:
@@ -23,9 +23,19 @@ jobs:
             arch: x86
           - os: macos-latest
             arch: x86
+          # https://github.com/actions/setup-python/issues/948
+          - os: macos-latest
+            arch: x64
+            python-version: 3.8
+          - os: macos-latest
+            arch: x64
+            python-version: 3.9
+          - os: macos-latest
+            arch: x64
+            python-version: 3.10
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 50
         submodules: true
@@ -41,7 +51,7 @@ jobs:
           __version__\s*=\s*(?:['"])([[:PEP440:]])(?:['"])
 
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       if: steps.release.outputs.version == 0
       env:
         PIP_DISABLE_PIP_VERSION_CHECK: 1
