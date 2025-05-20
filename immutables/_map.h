@@ -18,8 +18,8 @@ This constant is used to define a datastucture for storing iteration state.
 #define _Py_HAMT_MAX_TREE_DEPTH 8
 
 
-#define Map_Check(o) (Py_TYPE(o) == &_Map_Type)
-#define MapMutation_Check(o) (Py_TYPE(o) == &_MapMutation_Type)
+#define Map_Check(state, o) (Py_IS_TYPE(o, state->MapType))
+#define MapMutation_Check(state, o) (Py_IS_TYPE(o, state->MapMutationType))
 
 
 /* Abstract tree node. */
@@ -28,12 +28,18 @@ typedef struct {
 } MapNode;
 
 
+#ifdef Py_TPFLAGS_MANAGED_WEAKREF
+#define _MapCommonFields(pref)          \
+    PyObject_HEAD                       \
+    MapNode *pref##_root;               \
+    Py_ssize_t pref##_count;
+#else
 #define _MapCommonFields(pref)          \
     PyObject_HEAD                       \
     MapNode *pref##_root;               \
     PyObject *pref##_weakreflist;       \
     Py_ssize_t pref##_count;
-
+#endif
 
 /* Base mapping struct; used in methods shared between
    MapObject and MapMutationObject types. */
@@ -97,22 +103,6 @@ typedef struct {
     binaryfunc mi_yield;
     MapIteratorState mi_iter;
 } MapIterator;
-
-
-/* PyTypes */
-
-
-PyTypeObject _Map_Type;
-PyTypeObject _MapMutation_Type;
-PyTypeObject _Map_ArrayNode_Type;
-PyTypeObject _Map_BitmapNode_Type;
-PyTypeObject _Map_CollisionNode_Type;
-PyTypeObject _MapKeys_Type;
-PyTypeObject _MapValues_Type;
-PyTypeObject _MapItems_Type;
-PyTypeObject _MapKeysIter_Type;
-PyTypeObject _MapValuesIter_Type;
-PyTypeObject _MapItemsIter_Type;
 
 
 #endif
