@@ -61,6 +61,7 @@ del _Unhashable
 
 
 class BitmapNode:
+    __slots__ = ("array", "bitmap", "mutid", "size")
 
     def __init__(self, size, bitmap, array, mutid):
         self.size = size
@@ -419,6 +420,7 @@ class MapKeys:
 
 
 class MapValues:
+    __slots__ = ("__count", "__root")
 
     def __init__(self, c, m):
         self.__count = c
@@ -432,6 +434,7 @@ class MapValues:
 
 
 class MapItems:
+    __slots__ = ("__count", "__root")
 
     def __init__(self, c, m):
         self.__count = c
@@ -445,7 +448,7 @@ class MapItems:
 
 
 class Map:
-
+    __slots__ = ("__weakref__", "__count", "__hash", "__root")
     def __init__(self, *args, **kw):
         if not args:
             col = None
