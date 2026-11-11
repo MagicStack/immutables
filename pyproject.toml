@@ -20,6 +20,9 @@ classifiers=[
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: Implementation :: CPython",
     "Operating System :: POSIX",
     "Operating System :: MacOS :: MacOS X",
@@ -37,8 +40,11 @@ github = "https://github.com/MagicStack/immutables"
 # their combination breaks too often
 # (example breakage: https://gitlab.com/pycqa/flake8/issues/427)
 test = [
-    'flake8~=5.0',
-    'pycodestyle~=2.9',
+    'flake8~=5.0; python_version < "3.14"',
+    'pycodestyle~=2.9; python_version < "3.14"',
+    # Older pyflakes relies on ast nodes removed in Python 3.14
+    'flake8~=7.3; python_version >= "3.14"',
+    'pycodestyle~=2.14; python_version >= "3.14"',
     'mypy~=1.4',
     'pytest~=7.4',
 ]
