@@ -79,7 +79,8 @@ jobs:
         run: |
           MATRIX_INCLUDE=$(
             {
-              cibuildwheel --print-build-identifiers --platform linux --archs x86_64,aarch64 | grep cp |  jq -nRc '{"only": inputs, "os": "ubuntu-latest"}' \
+              cibuildwheel --print-build-identifiers --platform linux --archs x86_64 | grep cp |  jq -nRc '{"only": inputs, "os": "ubuntu-latest"}' \
+              && cibuildwheel --print-build-identifiers --platform linux --archs aarch64 | grep cp |  jq -nRc '{"only": inputs, "os": "ubuntu-26.04-arm"}' \
               && cibuildwheel --print-build-identifiers --platform macos --archs x86_64,arm64 | grep cp |  jq -nRc '{"only": inputs, "os": "macos-latest"}' \
               && cibuildwheel --print-build-identifiers --platform windows --archs x86,AMD64 | grep cp |  jq -nRc '{"only": inputs, "os": "windows-latest"}' \
               && cibuildwheel --print-build-identifiers --platform windows --archs ARM64 | grep cp |  jq -nRc '{"only": inputs, "os": "windows-11-arm"}'
@@ -108,10 +109,6 @@ jobs:
       with:
         fetch-depth: 50
         submodules: true
-
-    - name: Set up QEMU
-      if: runner.os == 'Linux'
-      uses: docker/setup-qemu-action@v2
 
     - uses: pypa/cibuildwheel@f9b966cfadf4109556cadc5bb39ddb72d0ce664e  # v4.3.5
       with:
@@ -145,7 +142,7 @@ jobs:
       id: relver
       run: |
         set -e
-        echo ::set-output name=version::$(cat dist/VERSION)
+        echo "version=$(cat dist/VERSION)" >> "$GITHUB_OUTPUT"
         rm dist/VERSION
 
     - name: Merge and tag the PR
