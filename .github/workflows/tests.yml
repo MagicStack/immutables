@@ -21,11 +21,16 @@ jobs:
           - {os: windows-latest, arch: x86}
           - {os: ubuntu-latest, arch: x64}
           - &macos-x64 {os: macos-latest, arch: x64}
+          - &windows-arm64 {os: windows-11-arm, arch: arm64}
         exclude:
           # https://github.com/actions/setup-python/issues/948
           - {platform: *macos-x64, python-version: "3.8"}
           - {platform: *macos-x64, python-version: "3.9"}
           - {platform: *macos-x64, python-version: "3.10"}
+          # CPython does not have a Windows ARM64 release before 3.11
+          - {platform: *windows-arm64, python-version: "3.8"}
+          - {platform: *windows-arm64, python-version: "3.9"}
+          - {platform: *windows-arm64, python-version: "3.10"}
 
     steps:
     - uses: actions/checkout@v4
