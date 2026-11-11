@@ -1,21 +1,15 @@
-import sys
 from typing import Any
 from typing import Hashable
 from typing import Iterable
 from typing import Iterator
 from typing import NoReturn
 from typing import Optional
+from typing import Protocol
+from typing import TYPE_CHECKING
 from typing import Tuple
 from typing import TypeVar
 from typing import Union
 from typing import overload
-
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-    from typing import TYPE_CHECKING
-else:
-    from typing_extensions import Protocol
-    from typing_extensions import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ._map import Map

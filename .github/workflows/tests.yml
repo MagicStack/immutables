@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.platform.os }}
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
         platform:
           - {os: windows-latest, arch: x64}
           - {os: windows-latest, arch: x86}
@@ -24,12 +24,8 @@ jobs:
           - &windows-arm64 {os: windows-11-arm, arch: arm64}
         exclude:
           # https://github.com/actions/setup-python/issues/948
-          - {platform: *macos-x64, python-version: "3.8"}
-          - {platform: *macos-x64, python-version: "3.9"}
           - {platform: *macos-x64, python-version: "3.10"}
           # CPython does not have a Windows ARM64 release before 3.11
-          - {platform: *windows-arm64, python-version: "3.8"}
-          - {platform: *windows-arm64, python-version: "3.9"}
           - {platform: *windows-arm64, python-version: "3.10"}
 
     steps:

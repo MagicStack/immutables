@@ -662,11 +662,7 @@ class Map:
         self.__root.dump(buf, 0)
         return '\n'.join(buf)
 
-    if sys.version_info >= (3, 9):
-        __class_getitem__ = classmethod(types.GenericAlias)
-    else:
-        def __class_getitem__(cls, item):
-            return cls
+    __class_getitem__ = classmethod(types.GenericAlias)
 
 
 class MapMutation:
