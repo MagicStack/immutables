@@ -40,7 +40,7 @@ github = "https://github.com/MagicStack/immutables"
 test = [
     'flake8~=7.3',
     'pycodestyle~=2.14',
-    'mypy~=1.4',
+    'mypy~=2.4.0',
     'pytest~=7.4',
 ]
 
