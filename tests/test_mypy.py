@@ -1,5 +1,5 @@
 import os
-import sys
+import re
 
 try:
     import mypy.test.testcmdline
@@ -11,10 +11,12 @@ except (ImportError, AssertionError):
         raise
 else:
     # I'm upset. There's no other way to deal with the little 'defined here'
-    # notes that mypy emits when passing an unexpected keyword argument
-    # and at no other time.
+    # (or, in newer mypy, 'defined in "module"') notes that mypy emits when
+    # passing an unexpected keyword argument and at no other time.
+    _defined_note = re.compile(r'note: .* defined (here|in "[^"]+")$')
+
     def renormalize_error_messages(messages):
-        messages = [x for x in messages if not x.endswith(' defined here')]
+        messages = [x for x in messages if not _defined_note.search(x)]
         return normalize_error_messages(messages)
 
     mypy.test.testcmdline.normalize_error_messages = renormalize_error_messages
@@ -34,6 +36,5 @@ else:
         files = ['check-immu.test']
 
         def run_case(self, testcase):
-            if sys.version_info >= (3, 7):
-                os.environ["MYPYPATH"] = mypy_path
+            os.environ["MYPYPATH"] = mypy_path
             super().run_case(testcase)

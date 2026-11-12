@@ -11,28 +11,22 @@ on:
 
 jobs:
   tests:
-    runs-on: ${{ matrix.os }}
+    name: tests (${{ matrix.python-version }}, ${{ matrix.platform.os }}, ${{ matrix.platform.arch }})
+    runs-on: ${{ matrix.platform.os }}
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        arch: [x64, x86]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+        platform:
+          - {os: windows-latest, arch: x64}
+          - {os: windows-latest, arch: x86}
+          - {os: ubuntu-latest, arch: x64}
+          - &macos-x64 {os: macos-latest, arch: x64}
+          - &windows-arm64 {os: windows-11-arm, arch: arm64}
         exclude:
-          # 32-bit Python is only available on Windows
-          - os: ubuntu-latest
-            arch: x86
-          - os: macos-latest
-            arch: x86
           # https://github.com/actions/setup-python/issues/948
-          - os: macos-latest
-            arch: x64
-            python-version: 3.8
-          - os: macos-latest
-            arch: x64
-            python-version: 3.9
-          - os: macos-latest
-            arch: x64
-            python-version: 3.10
+          - {platform: *macos-x64, python-version: "3.10"}
+          # CPython does not have a Windows ARM64 release before 3.11
+          - {platform: *windows-arm64, python-version: "3.10"}
 
     steps:
     - uses: actions/checkout@v4
@@ -57,7 +51,7 @@ jobs:
         PIP_DISABLE_PIP_VERSION_CHECK: 1
       with:
         python-version: ${{ matrix.python-version }}
-        architecture: ${{ matrix.arch }}
+        architecture: ${{ matrix.platform.arch }}
 
     - name: Test
       if: steps.release.outputs.version == 0

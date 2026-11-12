@@ -2,7 +2,6 @@ import collections.abc
 import gc
 import pickle
 import random
-import sys
 import unittest
 import weakref
 
@@ -1385,12 +1384,9 @@ class BaseMapTest:
             pickle.dumps(h.mutate())
 
     def test_map_is_subscriptable(self):
-        if sys.version_info >= (3, 9):
-            with_args = self.Map[int, str]
-            self.assertIs(with_args.__origin__, self.Map)
-            self.assertEqual(with_args.__args__, (int, str))
-        else:
-            self.assertIs(self.Map[int, str], self.Map)
+        with_args = self.Map[int, str]
+        self.assertIs(with_args.__origin__, self.Map)
+        self.assertEqual(with_args.__args__, (int, str))
 
     def test_kwarg_named_col(self):
         self.assertEqual(dict(self.Map(col=0)), {"col": 0})

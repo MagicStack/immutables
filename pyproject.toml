@@ -2,7 +2,7 @@
 name = "immutables"
 description = "Immutable Collections"
 authors = [{name = "MagicStack Inc", email = "hello@magic.io"}]
-requires-python = '>=3.8.0'
+requires-python = '>=3.10'
 readme = "README.rst"
 license = {text = "Apache License, Version 2.0"}
 dynamic = ["version"]
@@ -15,11 +15,12 @@ classifiers=[
     "License :: OSI Approved :: Apache Software License",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Programming Language :: Python :: Implementation :: CPython",
     "Operating System :: POSIX",
     "Operating System :: MacOS :: MacOS X",
@@ -37,9 +38,9 @@ github = "https://github.com/MagicStack/immutables"
 # their combination breaks too often
 # (example breakage: https://gitlab.com/pycqa/flake8/issues/427)
 test = [
-    'flake8~=5.0',
-    'pycodestyle~=2.9',
-    'mypy~=1.4',
+    'flake8~=7.3',
+    'pycodestyle~=2.14',
+    'mypy~=2.4.0',
     'pytest~=7.4',
 ]
 
@@ -81,6 +82,8 @@ ignore_errors = true
 [tool.cibuildwheel]
 build-frontend = "build"
 test-extras = "test"
+# The C extension does not declare free-threading support (Py_mod_gil)
+skip = "cp3??t-*"
 
 [tool.cibuildwheel.macos]
 test-command = "python {project}/tests/__init__.py"

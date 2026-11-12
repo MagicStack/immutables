@@ -1,4 +1,3 @@
-import sys
 # We need the mypy pytest plugin to do the test collection for our
 # typing tests.
 
@@ -12,6 +11,3 @@ with unittest.mock.patch('os.path.isdir') as isdir:
 pytest_plugins = [
     'mypy.test.data',
 ]
-
-if sys.version_info < (3, 10):
-    collect_ignore = ["test_pattern_matching.py"]
